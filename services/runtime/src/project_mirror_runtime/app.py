@@ -22,9 +22,15 @@ async def observe(observation: Observation) -> RuntimeDecision:
         return decision
 
     gateway_url = os.getenv("MIRROR_GATEWAY_URL", "http://127.0.0.1:8080")
+    gateway_token = os.getenv("MIRROR_GATEWAY_TOKEN")
+    headers = {"authorization": f"Bearer {gateway_token}"} if gateway_token else None
     try:
         async with httpx.AsyncClient(base_url=gateway_url, timeout=1.0) as client:
-            response = await client.post("/v1/pose", json=decision.pose.model_dump())
+            response = await client.post(
+                "/v1/pose",
+                json=decision.pose.model_dump(),
+                headers=headers,
+            )
             response.raise_for_status()
     except httpx.HTTPStatusError as error:
         detail = error.response.json().get("detail", "gateway rejected pose")

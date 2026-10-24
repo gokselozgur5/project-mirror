@@ -44,7 +44,9 @@ in `docs/evidence/phase1-simulation.md`.
 - No firmware stop/arm wire command or checksummed telemetry contract yet.
 - No VAD, STT, text model, TTS, interruption pipeline, or conversation state.
 - No persistent memory, user isolation, avatar lip sync, or physical rig.
-- Browser-to-gateway authorization described in the threat model is not built.
+- Physical pose and arm calls require a bearer control token; emergency stop is
+  intentionally unauthenticated. Broader user/session authentication is not
+  implemented.
 - No servo or mechanism has been authorized for connection.
 
 ## Next safe slice

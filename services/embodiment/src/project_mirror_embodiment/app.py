@@ -1,10 +1,12 @@
 import asyncio
 import os
+import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from time import time_ns
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from .gateway import CommandRejected, EmbodimentGateway
@@ -80,6 +82,10 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     reader_task: asyncio.Task[None] | None = None
     port = os.getenv("MIRROR_SERIAL_PORT")
     if port:
+        if not os.getenv("MIRROR_CONTROL_TOKEN"):
+            raise RuntimeError(
+                "MIRROR_CONTROL_TOKEN is required when a serial controller is enabled"
+            )
         device = SerialDevice(port)
         transport = HeadControllerTransport(device)
         application.state.controller = transport
@@ -110,7 +116,7 @@ app.add_middleware(
     allow_origins=[os.getenv("MIRROR_OPERATOR_ORIGIN", "http://127.0.0.1:5173")],
     allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["content-type"],
+    allow_headers=["authorization", "content-type"],
 )
 gateway = EmbodimentGateway()
 app.state.controller = None
@@ -131,6 +137,21 @@ def fail_closed_after_transport_error(error: SerialTransportError) -> None:
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="head controller write failed; gateway stop is latched",
     ) from error
+
+
+def require_control_token(authorization: Annotated[str | None, Header()] = None) -> None:
+    expected = os.getenv("MIRROR_CONTROL_TOKEN")
+    if expected is None:
+        return
+    scheme, separator, provided = (authorization or "").partition(" ")
+    if separator != " " or scheme.lower() != "bearer" or not secrets.compare_digest(
+        provided, expected
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="valid control token required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 @app.get("/health", response_model=Health)
@@ -164,7 +185,11 @@ def get_controller_status() -> ControllerStatus:
     return current
 
 
-@app.post("/v1/pose", response_model=EmbodimentState)
+@app.post(
+    "/v1/pose",
+    response_model=EmbodimentState,
+    dependencies=[Depends(require_control_token)],
+)
 def set_pose(target: PoseTarget) -> EmbodimentState:
     try:
         state = gateway.submit(target)
@@ -191,7 +216,11 @@ def stop() -> EmbodimentState:
     return state
 
 
-@app.post("/v1/arm", response_model=EmbodimentState)
+@app.post(
+    "/v1/arm",
+    response_model=EmbodimentState,
+    dependencies=[Depends(require_control_token)],
+)
 def arm() -> EmbodimentState:
     configured = controller()
     if configured is not None:

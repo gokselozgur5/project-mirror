@@ -53,6 +53,7 @@ export function App() {
   const [stateAgeMs, setStateAgeMs] = useState(0);
   const [connected, setConnected] = useState(false);
   const [commandStatus, setCommandStatus] = useState("No command sent");
+  const [controlToken, setControlToken] = useState("");
   const sequence = useRef(0);
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export function App() {
     sequence.current = Math.max(sequence.current + 1, state.sequence + 1);
     await sendCommand("pose", `${gatewayHttp}/v1/pose`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: controlHeaders(true),
       body: JSON.stringify({
         version: 1,
         sequence: sequence.current,
@@ -97,7 +98,17 @@ export function App() {
   };
 
   const arm = async () => {
-    await sendCommand("arm", `${gatewayHttp}/v1/arm`, { method: "POST" });
+    await sendCommand("arm", `${gatewayHttp}/v1/arm`, {
+      method: "POST",
+      headers: controlHeaders(false),
+    });
+  };
+
+  const controlHeaders = (includeContentType: boolean) => {
+    const headers: Record<string, string> = {};
+    if (includeContentType) headers["content-type"] = "application/json";
+    if (controlToken) headers.authorization = `Bearer ${controlToken}`;
+    return headers;
   };
 
   const sendCommand = async (name: string, url: string, init: RequestInit) => {
@@ -171,6 +182,16 @@ export function App() {
         <h2>Bench controls</h2>
         <p>Commands are intentionally outside the mechanical range to prove gateway clamping.</p>
         <p className="commandStatus" role="status">{commandStatus}</p>
+        <label className="tokenField">
+          Physical control token
+          <input
+            type="password"
+            autoComplete="off"
+            value={controlToken}
+            onChange={(event) => setControlToken(event.target.value)}
+            placeholder="Optional in simulation"
+          />
+        </label>
         <div className="buttonRow">
           <button disabled={!connected} onClick={() => void sendPose(-90, 0)}>Look left</button>
           <button disabled={!connected} onClick={() => void sendPose(0, -45)}>Look up</button>

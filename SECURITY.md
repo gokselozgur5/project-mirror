@@ -11,3 +11,5 @@ exploit against a deployed device.
 - The embodiment gateway clamps position, velocity, acceleration, and timeout.
 - The firmware stops motion when its command heartbeat expires.
 - Secrets belong in process environment or a secret manager, never Git.
+- Enabling a serial controller requires a bearer token for pose and arm calls;
+  emergency stop remains callable without authentication.

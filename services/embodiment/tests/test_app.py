@@ -58,6 +58,7 @@ def test_health() -> None:
 def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
     device = ClosableMemoryStream()
     monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "test-control-token")
     monkeypatch.setattr(
         "project_mirror_embodiment.app.SerialDevice",
         lambda port: device,
@@ -68,6 +69,22 @@ def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.Monk
 
     assert device.closed is True
     assert app.state.controller is None
+
+
+def test_pose_and_arm_require_configured_bearer_but_stop_remains_available(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "test-control-token")
+
+    assert client.post("/v1/arm").status_code == 401
+    assert client.post("/v1/stop").status_code == 200
+    assert (
+        client.post(
+            "/v1/arm",
+            headers={"authorization": "Bearer test-control-token"},
+        ).status_code
+        == 200
+    )
 
 
 def test_pose_endpoint_clamps_values() -> None:
