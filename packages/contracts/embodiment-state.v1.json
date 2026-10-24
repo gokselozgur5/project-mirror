@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-mirror.local/contracts/embodiment-state.v1.json",
+  "title": "EmbodimentStateV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "sequence", "updated_at_ms", "yaw_deg", "pitch_deg", "mode"],
+  "properties": {
+    "version": { "const": 1 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "updated_at_ms": { "type": "integer", "minimum": 0 },
+    "yaw_deg": { "type": "number" },
+    "pitch_deg": { "type": "number" },
+    "mode": { "enum": ["tracking", "neutral", "stopped"] },
+    "reason": { "type": ["string", "null"] }
+  }
+}

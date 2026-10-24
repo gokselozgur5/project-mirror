@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-mirror.local/contracts/pose-target.v1.json",
+  "title": "PoseTargetV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "sequence", "issued_at_ms", "ttl_ms", "yaw_deg", "pitch_deg"],
+  "properties": {
+    "version": { "const": 1 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "issued_at_ms": { "type": "integer", "minimum": 0 },
+    "ttl_ms": { "type": "integer", "minimum": 50, "maximum": 2000 },
+    "yaw_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+    "pitch_deg": { "type": "number", "minimum": -90, "maximum": 90 }
+  }
+}
