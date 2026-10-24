@@ -15,6 +15,10 @@ type EmbodimentState = {
 const gatewayHttp = import.meta.env.VITE_GATEWAY_HTTP ?? "http://127.0.0.1:8080";
 const gatewayWs = import.meta.env.VITE_GATEWAY_WS ?? "ws://127.0.0.1:8080/v1/stream";
 
+function unixMilliseconds() {
+  return Date.now();
+}
+
 const initialState: EmbodimentState = {
   version: 1,
   sequence: 0,
@@ -25,10 +29,30 @@ const initialState: EmbodimentState = {
   reason: "not_connected",
 };
 
+function isEmbodimentState(value: unknown): value is EmbodimentState {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    candidate.version === 1 &&
+    Number.isSafeInteger(candidate.sequence) &&
+    typeof candidate.updated_at_ms === "number" &&
+    Number.isFinite(candidate.updated_at_ms) &&
+    typeof candidate.yaw_deg === "number" &&
+    Number.isFinite(candidate.yaw_deg) &&
+    typeof candidate.pitch_deg === "number" &&
+    Number.isFinite(candidate.pitch_deg) &&
+    (candidate.mode === "tracking" ||
+      candidate.mode === "neutral" ||
+      candidate.mode === "stopped") &&
+    (typeof candidate.reason === "string" || candidate.reason === null)
+  );
+}
+
 export function App() {
   const [state, setState] = useState(initialState);
   const [stateAgeMs, setStateAgeMs] = useState(0);
   const [connected, setConnected] = useState(false);
+  const [commandStatus, setCommandStatus] = useState("No command sent");
   const sequence = useRef(0);
 
   useEffect(() => {
@@ -37,22 +61,30 @@ export function App() {
     socket.onclose = () => setConnected(false);
     socket.onerror = () => setConnected(false);
     socket.onmessage = (event) => {
-      const nextState = JSON.parse(String(event.data)) as EmbodimentState;
-      setState(nextState);
-      setStateAgeMs(Math.max(0, Date.now() - nextState.updated_at_ms));
+      try {
+        const payload: unknown = JSON.parse(String(event.data));
+        if (!isEmbodimentState(payload)) {
+          setCommandStatus("Rejected invalid gateway state");
+          return;
+        }
+        setState(payload);
+        setStateAgeMs(Math.max(0, Date.now() - payload.updated_at_ms));
+      } catch {
+        setCommandStatus("Rejected malformed gateway message");
+      }
     };
     return () => socket.close();
   }, []);
 
   const sendPose = async (yawDeg: number, pitchDeg: number) => {
     sequence.current = Math.max(sequence.current + 1, state.sequence + 1);
-    await fetch(`${gatewayHttp}/v1/pose`, {
+    await sendCommand("pose", `${gatewayHttp}/v1/pose`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         version: 1,
         sequence: sequence.current,
-        issued_at_ms: Date.now(),
+        issued_at_ms: unixMilliseconds(),
         ttl_ms: 750,
         yaw_deg: yawDeg,
         pitch_deg: pitchDeg,
@@ -61,11 +93,30 @@ export function App() {
   };
 
   const stop = async () => {
-    await fetch(`${gatewayHttp}/v1/stop`, { method: "POST" });
+    await sendCommand("stop", `${gatewayHttp}/v1/stop`, { method: "POST" });
   };
 
   const arm = async () => {
-    await fetch(`${gatewayHttp}/v1/arm`, { method: "POST" });
+    await sendCommand("arm", `${gatewayHttp}/v1/arm`, { method: "POST" });
+  };
+
+  const sendCommand = async (name: string, url: string, init: RequestInit) => {
+    setCommandStatus(`Sending ${name}…`);
+    try {
+      const response = await fetch(url, init);
+      if (!response.ok) {
+        const body: unknown = await response.json().catch(() => null);
+        const detail =
+          typeof body === "object" && body !== null && "detail" in body
+            ? String(body.detail)
+            : `HTTP ${response.status}`;
+        setCommandStatus(`${name} rejected: ${detail}`);
+        return;
+      }
+      setCommandStatus(`${name} accepted`);
+    } catch {
+      setCommandStatus(`${name} failed: gateway unavailable`);
+    }
   };
 
   const faceTransform = `rotateY(${state.yaw_deg * 0.35}deg) rotateX(${-state.pitch_deg * 0.3}deg)`;
@@ -119,12 +170,13 @@ export function App() {
       <section className="controls">
         <h2>Bench controls</h2>
         <p>Commands are intentionally outside the mechanical range to prove gateway clamping.</p>
+        <p className="commandStatus" role="status">{commandStatus}</p>
         <div className="buttonRow">
-          <button onClick={() => void sendPose(-90, 0)}>Look left</button>
-          <button onClick={() => void sendPose(0, -45)}>Look up</button>
-          <button onClick={() => void sendPose(0, 0)}>Neutral</button>
-          <button onClick={() => void sendPose(90, 0)}>Look right</button>
-          <button className="arm" onClick={() => void arm()}>Arm motion</button>
+          <button disabled={!connected} onClick={() => void sendPose(-90, 0)}>Look left</button>
+          <button disabled={!connected} onClick={() => void sendPose(0, -45)}>Look up</button>
+          <button disabled={!connected} onClick={() => void sendPose(0, 0)}>Neutral</button>
+          <button disabled={!connected} onClick={() => void sendPose(90, 0)}>Look right</button>
+          <button disabled={!connected} className="arm" onClick={() => void arm()}>Arm motion</button>
           <button className="stop" onClick={() => void stop()}>Emergency stop</button>
         </div>
       </section>

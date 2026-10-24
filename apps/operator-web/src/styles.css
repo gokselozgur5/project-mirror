@@ -46,9 +46,11 @@ h1 { margin: 0; font-size: clamp(36px, 7vw, 72px); line-height: .95; letter-spac
 .controls { margin-top: 12px; padding: 22px; }
 .controls h2 { margin: 0 0 6px; font-size: 18px; }
 .controls p { margin: 0 0 18px; color: #91a099; }
+.controls .commandStatus { color: #8cf0bd; font: 600 12px/1.4 ui-monospace, monospace; }
 .buttonRow { display: flex; flex-wrap: wrap; gap: 10px; }
 .buttonRow button { padding: 11px 14px; border: 1px solid #354139; border-radius: 10px; color: #dce8e1; background: #18201c; cursor: pointer; }
 .buttonRow button:hover { border-color: #8cf0bd; }
+.buttonRow button:disabled { cursor: not-allowed; opacity: .42; }
 .buttonRow .arm { border-color: #386b52; color: #aaf5ca; }
 .buttonRow .stop { margin-left: auto; border-color: #71332e; color: #ffb4aa; background: #291615; }
 
