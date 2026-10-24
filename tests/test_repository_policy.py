@@ -15,13 +15,17 @@ def git(repository: Path, *arguments: str) -> None:
     )
 
 
-def test_privacy_check_rejects_media_deleted_from_current_tree(tmp_path: Path) -> None:
+def run_policy_after_historical_deletion(
+    tmp_path: Path,
+    *,
+    filename: str,
+    content: str = "",
+) -> subprocess.CompletedProcess[str]:
     repository = tmp_path / "repository"
     scripts = repository / "scripts"
     scripts.mkdir(parents=True)
     shutil.copy(REPOSITORY_ROOT / "scripts" / "check-repository.sh", scripts)
-    private_media = repository / "private.mov"
-    private_media.touch()
+    (repository / filename).write_text(content, encoding="utf-8")
 
     git(repository, "init", "--quiet")
     git(repository, "add", ".")
@@ -36,7 +40,7 @@ def test_privacy_check_rejects_media_deleted_from_current_tree(tmp_path: Path) -
         "-m",
         "add fixture",
     )
-    git(repository, "rm", "--quiet", "private.mov")
+    git(repository, "rm", "--quiet", filename)
     git(
         repository,
         "-c",
@@ -49,7 +53,7 @@ def test_privacy_check_rejects_media_deleted_from_current_tree(tmp_path: Path) -
         "remove fixture",
     )
 
-    result = subprocess.run(
+    return subprocess.run(
         ["bash", "scripts/check-repository.sh"],
         cwd=repository,
         capture_output=True,
@@ -57,5 +61,23 @@ def test_privacy_check_rejects_media_deleted_from_current_tree(tmp_path: Path) -
         check=False,
     )
 
+
+def test_privacy_check_rejects_media_deleted_from_current_tree(tmp_path: Path) -> None:
+    result = run_policy_after_historical_deletion(tmp_path, filename="private.mov")
+
     assert result.returncode == 1
     assert "detected in Git history" in result.stderr
+
+
+def test_privacy_check_rejects_credential_deleted_from_current_tree(
+    tmp_path: Path,
+) -> None:
+    fake_credential = "gh" + "p_" + "A" * 24
+    result = run_policy_after_historical_deletion(
+        tmp_path,
+        filename="removed-secret.txt",
+        content=fake_credential,
+    )
+
+    assert result.returncode == 1
+    assert "probable credential detected in Git history" in result.stderr
