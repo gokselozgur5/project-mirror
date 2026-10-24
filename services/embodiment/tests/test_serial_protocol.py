@@ -7,6 +7,7 @@ from project_mirror_embodiment.serial_protocol import (
     SerialProtocolError,
     decode_control_command,
     decode_pose_command,
+    decode_telemetry,
     encode_control_command,
     encode_pose_command,
 )
@@ -96,3 +97,27 @@ def test_control_command_tampering_is_rejected() -> None:
 
     with pytest.raises(SerialProtocolError, match="crc32 mismatch"):
         decode_control_command(frame)
+
+
+def test_telemetry_golden_vector() -> None:
+    frame = (
+        b'{"v":1,"seq":42,"yaw_mdeg":12500,"pitch_mdeg":-4000,'
+        b'"mode":"tracking","reason":"pose","armed":true,"crc32":"844925C8"}\n'
+    )
+
+    telemetry = decode_telemetry(frame)
+
+    assert telemetry.seq == 42
+    assert telemetry.mode == "tracking"
+    assert telemetry.reason == "pose"
+    assert telemetry.armed is True
+
+
+def test_telemetry_corruption_is_rejected() -> None:
+    frame = (
+        b'{"v":1,"seq":42,"yaw_mdeg":12501,"pitch_mdeg":-4000,'
+        b'"mode":"tracking","reason":"pose","armed":true,"crc32":"844925C8"}\n'
+    )
+
+    with pytest.raises(SerialProtocolError, match="crc32 mismatch"):
+        decode_telemetry(frame)

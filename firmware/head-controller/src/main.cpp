@@ -97,13 +97,24 @@ bool controlChecksumMatches(const char *operation, uint32_t sequence, const char
   return strcmp(provided, expected) == 0;
 }
 
-void publishTelemetry(int32_t yawMilliDegrees, int32_t pitchMilliDegrees) {
+void publishTelemetry(int32_t yawMilliDegrees, int32_t pitchMilliDegrees, const char *mode,
+                      const char *reason) {
+  const String payload = "1,telemetry," + String(lastSequence) + "," +
+                         String(yawMilliDegrees) + "," + String(pitchMilliDegrees) + "," +
+                         String(mode) + "," + String(reason) + "," + (armed ? "1" : "0");
+  char checksum[9];
+  snprintf(checksum, sizeof(checksum), "%08lX",
+           static_cast<unsigned long>(crc32(payload)));
+
   JsonDocument response;
   response["v"] = 1;
   response["seq"] = lastSequence;
   response["yaw_mdeg"] = yawMilliDegrees;
   response["pitch_mdeg"] = pitchMilliDegrees;
+  response["mode"] = mode;
+  response["reason"] = reason;
   response["armed"] = armed;
+  response["crc32"] = checksum;
   serializeJson(response, Serial);
   Serial.println();
 }
@@ -144,10 +155,12 @@ void handleCommand(const String &line) {
     if (strcmp(operation, "stop") == 0) {
       stopLatched = true;
       disarm();
+      publishTelemetry(lastYawMilliDegrees, lastPitchMilliDegrees, "stopped",
+                       "operator_stop");
     } else {
       stopLatched = false;
+      publishTelemetry(lastYawMilliDegrees, lastPitchMilliDegrees, "neutral", "operator_arm");
     }
-    publishTelemetry(lastYawMilliDegrees, lastPitchMilliDegrees);
     return;
   }
 
@@ -179,7 +192,7 @@ void handleCommand(const String &line) {
   lastYawMilliDegrees = yawMilliDegrees;
   lastPitchMilliDegrees = pitchMilliDegrees;
   lastCommandAtMs = millis();
-  publishTelemetry(yawMilliDegrees, pitchMilliDegrees);
+  publishTelemetry(yawMilliDegrees, pitchMilliDegrees, "tracking", "pose");
 }
 }  // namespace
 
@@ -208,5 +221,7 @@ void loop() {
 
   if (armed && millis() - lastCommandAtMs > kHeartbeatTimeoutMs) {
     disarm();
+    publishTelemetry(lastYawMilliDegrees, lastPitchMilliDegrees, "neutral",
+                     "heartbeat_timeout");
   }
 }

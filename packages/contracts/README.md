@@ -11,5 +11,6 @@ version and an explicit migration.
   controller after gateway bounds are applied.
 - `serial-control-command.v1.json`: checksummed stop or arm transition sent to
   the head controller.
+- `serial-telemetry.v1.json`: checksummed controller-applied state and reason.
 
 Raw camera and microphone data do not belong in these messages.

@@ -30,6 +30,11 @@ Explicit control frames carry `op` instead of angles. Their checksum payload is
 `v,op,seq`, for example `1,stop,43`. A stop latches the controller and detaches
 the servos. Arm only clears that latch; it does not attach or move a servo.
 
+Telemetry uses the canonical payload
+`v,telemetry,seq,yaw_mdeg,pitch_mdeg,mode,reason,armed`, where `armed` is `0` or
+`1`. It reports the last applied command sequence and emits explicit pose,
+operator-stop, operator-arm, and heartbeat-timeout transitions.
+
 CRC detects accidental corruption; it does not authenticate a host. Physical
 access, host authorization, and a hardware actuator-power stop remain separate
 controls.

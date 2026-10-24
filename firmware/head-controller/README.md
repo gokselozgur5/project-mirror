@@ -21,7 +21,7 @@ Host command:
 Controller telemetry:
 
 ```json
-{"v":1,"seq":42,"yaw_mdeg":12500,"pitch_mdeg":-4000,"armed":true}
+{"v":1,"seq":42,"yaw_mdeg":12500,"pitch_mdeg":-4000,"mode":"tracking","reason":"pose","armed":true,"crc32":"844925C8"}
 ```
 
 Explicit control command:
@@ -37,7 +37,9 @@ Control frames use the payload `v,op,seq`. Stop latches and detaches both
 servos; arm clears the latch without attaching or moving them.
 Commands with a stale sequence, unknown fields, invalid JSON, invalid checksum,
 or out-of-range values are rejected. An oversized frame is discarded in full
-until its next newline. No valid command for 500 ms detaches the servos.
+until its next newline. Telemetry is also checksummed and reports the applied
+mode and transition reason. No valid command for 500 ms detaches the servos and
+publishes a `heartbeat_timeout` transition.
 
 ## Build
 

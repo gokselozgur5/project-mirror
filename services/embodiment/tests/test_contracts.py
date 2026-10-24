@@ -8,6 +8,7 @@ from project_mirror_embodiment.models import EmbodimentState, MotionMode, PoseTa
 from project_mirror_embodiment.serial_protocol import (
     decode_control_command,
     decode_pose_command,
+    decode_telemetry,
     encode_control_command,
     encode_pose_command,
 )
@@ -83,4 +84,15 @@ def test_serial_control_model_matches_public_contract() -> None:
 
     Draft202012Validator(load_schema("serial-control-command.v1.json")).validate(
         command.model_dump()
+    )
+
+
+def test_serial_telemetry_model_matches_public_contract() -> None:
+    telemetry = decode_telemetry(
+        b'{"v":1,"seq":42,"yaw_mdeg":12500,"pitch_mdeg":-4000,'
+        b'"mode":"tracking","reason":"pose","armed":true,"crc32":"844925C8"}\n'
+    )
+
+    Draft202012Validator(load_schema("serial-telemetry.v1.json")).validate(
+        telemetry.model_dump()
     )
