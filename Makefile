@@ -3,7 +3,7 @@ SHELL := /bin/bash
 UV ?= uv
 VENV := .venv
 
-.PHONY: bootstrap check test lint typecheck build firmware protocol-corpus run-gateway run-runtime run-perception run-web simulate phase1-soak privacy-check
+.PHONY: bootstrap check test lint typecheck build firmware protocol-corpus dev run-gateway run-runtime run-perception run-web simulate phase1-soak privacy-check
 
 bootstrap:
 	$(UV) sync --locked --all-packages --all-extras
@@ -33,6 +33,9 @@ firmware:
 
 protocol-corpus:
 	$(UV) run python scripts/generate-controller-corpus.py
+
+dev:
+	./scripts/run-dev-stack.sh
 
 privacy-check:
 	./scripts/check-repository.sh

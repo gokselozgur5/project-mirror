@@ -81,6 +81,15 @@ make run-perception
 npm run dev:web
 ```
 
+Or start the complete simulation with one foreground command:
+
+```bash
+make dev
+```
+
+It prints the local operator URL, keeps logs under ignored `runtime/`, and stops
+all four processes on `Ctrl-C`.
+
 The perception service currently accepts derived boxes from tests or a future
 local detector; it does not open a camera.
 
