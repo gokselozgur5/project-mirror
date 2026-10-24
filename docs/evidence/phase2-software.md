@@ -31,19 +31,19 @@ release build. The build reported 19,048 bytes RAM (5.8%) and 290,425 bytes flas
 workspace packages were skipped as unpublished projects; their locked external
 dependencies were audited. npm reported zero vulnerabilities.
 
-## Runtime smoke
+## Runtime soak
 
-A post-motion-change 60-second full-stack run exercised synthetic boxes through
+A post-motion-change five-minute full-stack run exercised synthetic boxes through
 perception, runtime, gateway, and WebSocket state:
 
-- Commands: 601 sent, 601 accepted, 0 failures.
-- Request latency: 18.20 ms p50, 28.34 ms p95, 48.82 ms maximum.
-- State age: 51.00 ms p50, 98.57 ms p95, 390.63 ms maximum.
+- Commands: 3,001 sent, 3,001 accepted, 0 failures.
+- Request latency: 17.58 ms p50, 25.21 ms p95, 56.24 ms maximum.
+- State age: 51.59 ms p50, 98.63 ms p95, 490.52 ms maximum.
 - Maximum sequence lag: 1.
 - Final transition after publisher stop: `neutral / heartbeat_timeout`.
 
-This smoke supplements rather than replaces the accepted five-minute Phase 1
-run in `phase1-simulation.md`.
+This soak supplements rather than replaces the original accepted five-minute
+Phase 1 run in `phase1-simulation.md`.
 
 ## Software safety evidence
 
