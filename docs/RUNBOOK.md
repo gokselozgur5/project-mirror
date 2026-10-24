@@ -86,7 +86,8 @@ and `invalid_telemetry`, and preserves the last validated sequence and
 transition. Gateway health reports `degraded` when an explicitly configured
 controller has not produced recent valid telemetry.
 Invalid or stale telemetry also latches the gateway stopped and sends a
-controller stop. Diagnose the link before using Arm again.
+controller stop. Pose and Arm remain rejected until validated telemetry is
+online again; diagnose the link before continuing.
 
 The operator view shows the current mode, target and applied pose, receipt age,
 sequence, and last transition reason. A stale publisher must cause the applied

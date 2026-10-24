@@ -203,6 +203,17 @@ def require_control_token(authorization: Annotated[str | None, Header()] = None)
         )
 
 
+def require_controller_online() -> None:
+    if controller() is None:
+        return
+    current: ControllerStatus = app.state.controller_status
+    if current.link_state is not ControllerLinkState.ONLINE:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="physical controller telemetry is not online",
+        )
+
+
 @app.get("/health", response_model=Health)
 def health() -> Health:
     controller_status: ControllerStatus = app.state.controller_status
@@ -237,7 +248,7 @@ def get_controller_status() -> ControllerStatus:
 @app.post(
     "/v1/pose",
     response_model=EmbodimentState,
-    dependencies=[Depends(require_control_token)],
+    dependencies=[Depends(require_control_token), Depends(require_controller_online)],
 )
 def set_pose(target: PoseTarget) -> EmbodimentState:
     try:
@@ -268,7 +279,7 @@ def stop() -> EmbodimentState:
 @app.post(
     "/v1/arm",
     response_model=EmbodimentState,
-    dependencies=[Depends(require_control_token)],
+    dependencies=[Depends(require_control_token), Depends(require_controller_online)],
 )
 def arm() -> EmbodimentState:
     configured = controller()

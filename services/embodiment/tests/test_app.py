@@ -146,6 +146,25 @@ def test_empty_control_token_keeps_simulation_unauthenticated(
     assert client.post("/v1/arm").status_code == 200
 
 
+def test_physical_arm_is_blocked_while_telemetry_is_not_online() -> None:
+    app.state.controller = HeadControllerTransport(MemoryStream())
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.STALE,
+    )
+    try:
+        response = client.post("/v1/arm")
+    finally:
+        app.state.controller = None
+        app.state.controller_status = ControllerStatus(
+            configured=False,
+            link_state=ControllerLinkState.SIMULATED,
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "physical controller telemetry is not online"
+
+
 def test_pose_endpoint_clamps_values() -> None:
     now_ms = time_ns() // 1_000_000
     response = client.post(
@@ -209,6 +228,10 @@ def test_stop_requires_explicit_arm_before_pose() -> None:
 def test_configured_controller_receives_pose_stop_and_arm() -> None:
     stream = MemoryStream()
     app.state.controller = HeadControllerTransport(stream)
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+    )
     client.post("/v1/arm")
     next_sequence = gateway.state().sequence + 1
 
@@ -227,20 +250,33 @@ def test_configured_controller_receives_pose_stop_and_arm() -> None:
         stopped = client.post("/v1/stop")
     finally:
         app.state.controller = None
+        app.state.controller_status = ControllerStatus(
+            configured=False,
+            link_state=ControllerLinkState.SIMULATED,
+        )
 
     assert pose.status_code == 200
     assert stopped.status_code == 200
     assert decode_control_command(stream.frames[0]).op == "arm"
     assert decode_pose_command(stream.frames[1]).seq == 2
     assert decode_control_command(stream.frames[2]).op == "stop"
+    gateway.arm()
 
 
 def test_controller_write_failure_latches_gateway_stop() -> None:
     app.state.controller = HeadControllerTransport(ShortWriteStream())
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+    )
     try:
         response = client.post("/v1/arm")
     finally:
         app.state.controller = None
+        app.state.controller_status = ControllerStatus(
+            configured=False,
+            link_state=ControllerLinkState.SIMULATED,
+        )
 
     assert response.status_code == 503
     assert gateway.state().mode == "stopped"
@@ -251,6 +287,7 @@ def test_controller_write_failure_latches_gateway_stop() -> None:
 def test_controller_telemetry_updates_link_status_and_counts_invalid_frames() -> None:
     stream = MemoryStream()
     transport = HeadControllerTransport(stream)
+    gateway.arm()
     transport.publish_pose(gateway.state().model_copy(update={"sequence": 1}))
     app.state.controller_status = ControllerStatus(
         configured=True,

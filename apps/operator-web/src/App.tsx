@@ -112,6 +112,8 @@ export function App() {
 
   const faceTransform = `rotateY(${state.yaw_deg * 0.35}deg) rotateX(${-state.pitch_deg * 0.3}deg)`;
   const pupilTransform = `translate(${state.yaw_deg * 0.08}px, ${state.pitch_deg * 0.08}px)`;
+  const controlsReady =
+    connected && (controllerLink === "simulated" || controllerLink === "online");
   return (
     <main>
       <header>
@@ -177,11 +179,11 @@ export function App() {
           />
         </label>
         <div className="buttonRow">
-          <button disabled={!connected} onClick={() => void sendPose(-90, 0)}>Look left</button>
-          <button disabled={!connected} onClick={() => void sendPose(0, -45)}>Look up</button>
-          <button disabled={!connected} onClick={() => void sendPose(0, 0)}>Neutral</button>
-          <button disabled={!connected} onClick={() => void sendPose(90, 0)}>Look right</button>
-          <button disabled={!connected} className="arm" onClick={() => void arm()}>Arm motion</button>
+          <button disabled={!controlsReady} onClick={() => void sendPose(-90, 0)}>Look left</button>
+          <button disabled={!controlsReady} onClick={() => void sendPose(0, -45)}>Look up</button>
+          <button disabled={!controlsReady} onClick={() => void sendPose(0, 0)}>Neutral</button>
+          <button disabled={!controlsReady} onClick={() => void sendPose(90, 0)}>Look right</button>
+          <button disabled={!controlsReady} className="arm" onClick={() => void arm()}>Arm motion</button>
           <button className="stop" onClick={() => void stop()}>Emergency stop</button>
         </div>
       </section>
