@@ -1,15 +1,12 @@
 SHELL := /bin/bash
 
-PYTHON ?= python3
+UV ?= uv
 VENV := .venv
 
 .PHONY: bootstrap check test lint typecheck build firmware run-gateway run-web simulate phase1-soak privacy-check
 
 bootstrap:
-	$(PYTHON) -m venv $(VENV)
-	$(VENV)/bin/python -m pip install --upgrade pip
-	$(VENV)/bin/python -m pip install -e 'services/embodiment[dev]'
-	$(VENV)/bin/python -m pip install -e 'services/runtime[dev]'
+	$(UV) sync --locked --all-packages --all-extras
 	npm ci
 
 test:
@@ -29,8 +26,8 @@ build:
 	npm run build
 
 firmware:
-	pio test -d firmware/head-controller -e native
-	pio run -d firmware/head-controller
+	$(UV) run platformio test -d firmware/head-controller -e native
+	$(UV) run platformio run -d firmware/head-controller
 
 privacy-check:
 	./scripts/check-repository.sh

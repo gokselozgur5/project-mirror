@@ -64,7 +64,7 @@ compiles, but physical safety has not yet been bench-tested.
 
 ## Quick start
 
-Prerequisites are Python 3.11 or newer, Node.js 22 or newer, and `curl`.
+Prerequisites are Python 3.11 or newer, uv, Node.js 22 or newer, and `curl`.
 
 ```bash
 make bootstrap
