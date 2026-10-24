@@ -83,6 +83,14 @@ class EmbodimentGateway:
                 max_rate=self._limits.yaw_rate_deg_s,
                 max_acceleration=self._limits.yaw_acceleration_deg_s2,
             )
+            applied_yaw = _clamp(
+                yaw,
+                self._limits.yaw_min_deg,
+                self._limits.yaw_max_deg,
+            )
+            if applied_yaw != yaw:
+                self._yaw_velocity_deg_s = 0.0
+            yaw = applied_yaw
             pitch, self._pitch_velocity_deg_s = _advance_axis(
                 current=self._state.pitch_deg,
                 target=bounded_pitch,
@@ -91,6 +99,14 @@ class EmbodimentGateway:
                 max_rate=self._limits.pitch_rate_deg_s,
                 max_acceleration=self._limits.pitch_acceleration_deg_s2,
             )
+            applied_pitch = _clamp(
+                pitch,
+                self._limits.pitch_min_deg,
+                self._limits.pitch_max_deg,
+            )
+            if applied_pitch != pitch:
+                self._pitch_velocity_deg_s = 0.0
+            pitch = applied_pitch
             self._state = EmbodimentState(
                 sequence=target.sequence,
                 updated_at_ms=now,

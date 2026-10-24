@@ -1,3 +1,5 @@
+import random
+
 import pytest
 
 from project_mirror_embodiment.gateway import CommandRejected, EmbodimentGateway
@@ -50,6 +52,61 @@ def test_limits_velocity_and_acceleration() -> None:
     assert first.pitch_deg == pytest.approx(2.7)
     assert second.yaw_deg == pytest.approx(10.8)
     assert second.pitch_deg == pytest.approx(8.1)
+
+
+def test_abrupt_reversal_at_limit_cannot_cross_mechanical_bounds() -> None:
+    clock = FakeClock()
+    gateway = EmbodimentGateway(clock=clock)
+    clock.now_ms = 2_000
+    at_limit = gateway.submit(
+        target(issued_at_ms=2_000, yaw_deg=55, pitch_deg=25)
+    )
+    clock.now_ms = 2_100
+
+    reversed_state = gateway.submit(
+        target(
+            sequence=2,
+            issued_at_ms=2_100,
+            yaw_deg=-55,
+            pitch_deg=-25,
+        )
+    )
+
+    assert at_limit.yaw_deg == 55
+    assert at_limit.pitch_deg == 25
+    assert reversed_state.yaw_deg == 55
+    assert -55 <= reversed_state.yaw_deg <= 55
+    assert -25 <= reversed_state.pitch_deg <= 25
+
+    clock.now_ms = 2_200
+    recovering = gateway.submit(
+        target(
+            sequence=3,
+            issued_at_ms=2_200,
+            yaw_deg=-55,
+            pitch_deg=-25,
+        )
+    )
+    assert recovering.yaw_deg < 55
+
+
+def test_deterministic_motion_fuzz_stays_inside_mechanical_bounds() -> None:
+    random_source = random.Random(20261024)
+    clock = FakeClock()
+    gateway = EmbodimentGateway(clock=clock)
+
+    for sequence in range(1, 1_001):
+        clock.now_ms += random_source.randint(1, 200)
+        state = gateway.submit(
+            target(
+                sequence=sequence,
+                issued_at_ms=clock.now_ms,
+                yaw_deg=random_source.uniform(-180, 180),
+                pitch_deg=random_source.uniform(-90, 90),
+            )
+        )
+        assert -55 <= state.yaw_deg <= 55
+        assert -25 <= state.pitch_deg <= 25
 
 
 def test_rejects_replayed_sequence() -> None:
