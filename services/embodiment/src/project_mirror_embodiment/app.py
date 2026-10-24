@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, stat
 from fastapi.middleware.cors import CORSMiddleware
 
 from .gateway import CommandRejected, EmbodimentGateway
-from .models import EmbodimentState, Health, PoseTarget
+from .models import EmbodimentState, GatewayMetrics, Health, PoseTarget
 
 app = FastAPI(title="Project Mirror Embodiment Gateway", version="0.1.0")
 app.add_middleware(
@@ -28,6 +28,11 @@ def get_state() -> EmbodimentState:
     return gateway.state()
 
 
+@app.get("/v1/metrics", response_model=GatewayMetrics)
+def get_metrics() -> GatewayMetrics:
+    return gateway.metrics()
+
+
 @app.post("/v1/pose", response_model=EmbodimentState)
 def set_pose(target: PoseTarget) -> EmbodimentState:
     try:
@@ -39,6 +44,11 @@ def set_pose(target: PoseTarget) -> EmbodimentState:
 @app.post("/v1/stop", response_model=EmbodimentState)
 def stop() -> EmbodimentState:
     return gateway.stop()
+
+
+@app.post("/v1/arm", response_model=EmbodimentState)
+def arm() -> EmbodimentState:
+    return gateway.arm()
 
 
 @app.websocket("/v1/stream")

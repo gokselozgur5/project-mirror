@@ -37,7 +37,7 @@ h1 { margin: 0; font-size: clamp(36px, 7vw, 72px); line-height: .95; letter-spac
 .mouth { position: absolute; left: 85px; bottom: 64px; width: 58px; height: 18px; border-bottom: 2px solid #8cf0bd; border-radius: 50%; }
 .crosshair { position: absolute; width: 16px; height: 16px; border: 1px solid #8cf0bd88; border-radius: 50%; }
 
-.panel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.panel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .metric, .controls { border: 1px solid #293238; border-radius: 16px; background: #101518; }
 .metric { padding: 18px; }
 .metric span { display: block; margin-bottom: 8px; color: #728078; font: 700 11px/1 ui-monospace, monospace; letter-spacing: .12em; }
@@ -49,10 +49,15 @@ h1 { margin: 0; font-size: clamp(36px, 7vw, 72px); line-height: .95; letter-spac
 .buttonRow { display: flex; flex-wrap: wrap; gap: 10px; }
 .buttonRow button { padding: 11px 14px; border: 1px solid #354139; border-radius: 10px; color: #dce8e1; background: #18201c; cursor: pointer; }
 .buttonRow button:hover { border-color: #8cf0bd; }
+.buttonRow .arm { border-color: #386b52; color: #aaf5ca; }
 .buttonRow .stop { margin-left: auto; border-color: #71332e; color: #ffb4aa; background: #291615; }
 
 @media (max-width: 700px) {
   header { flex-direction: column; }
   .panel { grid-template-columns: repeat(2, 1fr); }
   .buttonRow .stop { margin-left: 0; }
+}
+
+@media (min-width: 701px) and (max-width: 900px) {
+  .panel { grid-template-columns: repeat(3, 1fr); }
 }

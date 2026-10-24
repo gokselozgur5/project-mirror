@@ -51,6 +51,8 @@ record can be inspected and deleted.
 Converts high-level intent into bounded pose targets. It owns mechanical limits,
 velocity and acceleration limits, stale-command rejection, heartbeat timeout,
 and emergency neutral behavior. Model output never bypasses it.
+An operator stop is latched: subsequent pose commands are rejected until a
+separate explicit arm action returns the gateway to neutral.
 
 ### Browser avatar
 

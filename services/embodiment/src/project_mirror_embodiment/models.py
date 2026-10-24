@@ -35,3 +35,13 @@ class EmbodimentState(StrictModel):
 class Health(StrictModel):
     status: str
     mode: MotionMode
+
+
+class GatewayMetrics(StrictModel):
+    uptime_ms: int = Field(ge=0)
+    accepted_commands: int = Field(ge=0)
+    rejected_commands: int = Field(ge=0)
+    heartbeat_timeouts: int = Field(ge=0)
+    stop_count: int = Field(ge=0)
+    last_sequence: int = Field(ge=0)
+    last_source_age_ms: int | None = Field(default=None, ge=0)
