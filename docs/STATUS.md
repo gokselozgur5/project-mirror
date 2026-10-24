@@ -35,9 +35,9 @@ in `docs/evidence/phase1-simulation.md`.
 ## Not implemented or not proven
 
 - No camera adapter; Phase 1 observations are synthetic.
-- An explicit `MIRROR_SERIAL_PORT` can open a controller and gateway writes are
-  dispatched, but no telemetry reader connects returned frames to gateway
-  health yet.
+- An explicit `MIRROR_SERIAL_PORT` opens a controller, dispatches writes, and
+  reads validated telemetry into `/v1/controller`; this remains fake-tested,
+  not board-tested.
 - Firmware checksum handling is compile-verified, not board-tested.
 - Pin numbers, pulse widths, soft limits, servo selection, and power design are
   placeholders pending measured hardware.
