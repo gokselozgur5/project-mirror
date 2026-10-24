@@ -353,6 +353,27 @@ def test_controller_telemetry_updates_link_status_and_counts_invalid_frames() ->
     gateway.arm()
 
 
+def test_controller_fault_reasserts_physical_stop_when_host_is_already_stopped() -> None:
+    stream = MemoryStream()
+    transport = HeadControllerTransport(stream)
+    gateway.stop(reason="preexisting_stop")
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+    )
+
+    accept_controller_telemetry(app, transport, b"damaged\n")
+
+    assert gateway.state().reason == "preexisting_stop"
+    assert decode_control_command(stream.frames[-1]).op == "stop"
+
+    app.state.controller_status = ControllerStatus(
+        configured=False,
+        link_state=ControllerLinkState.SIMULATED,
+    )
+    gateway.arm()
+
+
 def test_silent_controller_becomes_stale_and_health_degrades() -> None:
     stream = MemoryStream()
     transport = HeadControllerTransport(stream)

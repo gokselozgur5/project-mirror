@@ -91,9 +91,8 @@ def mark_controller_telemetry_stale(
 
 
 def stop_for_controller_fault(transport: HeadControllerTransport, *, reason: str) -> None:
-    if gateway.state().mode is MotionMode.STOPPED:
-        return
-    gateway.stop(reason=reason)
+    if gateway.state().mode is not MotionMode.STOPPED:
+        gateway.stop(reason=reason)
     try:
         transport.publish_control("stop")
     except SerialTransportError:
