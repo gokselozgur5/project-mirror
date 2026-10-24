@@ -37,7 +37,7 @@ To open a controller explicitly, set the serial device before starting the
 gateway:
 
 ```bash
-MIRROR_CONTROL_TOKEN=replace-with-a-random-session-secret \
+MIRROR_CONTROL_TOKEN=replace-with-at-least-32-random-characters \
 MIRROR_SERIAL_PORT=/dev/cu.usbmodem-controller \
   uvicorn project_mirror_embodiment.app:app --port 8080
 ```

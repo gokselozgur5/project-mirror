@@ -138,9 +138,14 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     reader_task: asyncio.Task[None] | None = None
     port = os.getenv("MIRROR_SERIAL_PORT")
     if port:
-        if not os.getenv("MIRROR_CONTROL_TOKEN"):
+        control_token = os.getenv("MIRROR_CONTROL_TOKEN")
+        if not control_token:
             raise RuntimeError(
                 "MIRROR_CONTROL_TOKEN is required when a serial controller is enabled"
+            )
+        if len(control_token) < 32:
+            raise RuntimeError(
+                "MIRROR_CONTROL_TOKEN must contain at least 32 characters in physical mode"
             )
         device = SerialDevice(port)
         transport = HeadControllerTransport(device)

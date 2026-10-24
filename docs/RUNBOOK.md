@@ -48,6 +48,9 @@ Physical mode also requires `MIRROR_CONTROL_TOKEN`; pass the same value to the
 runtime as `MIRROR_GATEWAY_TOKEN` or enter it into the operator field for the
 current browser session. The browser keeps it only in memory. Stop remains
 unauthenticated so a missing credential cannot prevent an emergency stop.
+Physical startup rejects tokens shorter than 32 characters. Generate a fresh
+session value with `python -c 'import secrets; print(secrets.token_urlsafe(32))'`
+and keep it out of shell history, logs, and Git.
 After a physical controller handshake, both host and firmware remain
 stop-latched until an authenticated explicit arm.
 The host waits for matching controller arm telemetry before releasing its own
