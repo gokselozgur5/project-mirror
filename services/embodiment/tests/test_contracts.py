@@ -5,6 +5,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from project_mirror_embodiment.models import EmbodimentState, MotionMode, PoseTarget
+from project_mirror_embodiment.serial_protocol import decode_pose_command, encode_pose_command
 
 CONTRACTS = Path(__file__).parents[3] / "packages" / "contracts"
 
@@ -55,3 +56,18 @@ def test_observation_example_matches_public_contract() -> None:
     }
 
     Draft202012Validator(load_schema("observation.v1.json")).validate(observation)
+
+
+def test_serial_command_model_matches_public_contract() -> None:
+    state = EmbodimentState(
+        sequence=9,
+        updated_at_ms=1_001,
+        yaw_deg=12.5,
+        pitch_deg=-4.0,
+        mode=MotionMode.TRACKING,
+    )
+    command = decode_pose_command(encode_pose_command(state))
+
+    Draft202012Validator(load_schema("serial-pose-command.v1.json")).validate(
+        command.model_dump()
+    )
