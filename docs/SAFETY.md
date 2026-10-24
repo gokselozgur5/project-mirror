@@ -11,6 +11,8 @@
    until an explicit authenticated arm reaches both host and controller.
 7. Invalid or stale controller telemetry latches a host stop and emits a
    controller stop; movement does not continue without observability.
+8. Host arm remains latched until matching controller telemetry acknowledges
+   the exact arm sequence and stopped-to-neutral transition.
 
 ## Privacy defaults
 

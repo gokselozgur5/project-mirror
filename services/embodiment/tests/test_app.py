@@ -1,3 +1,4 @@
+from threading import Thread
 from time import sleep, time_ns
 
 import pytest
@@ -225,14 +226,14 @@ def test_stop_requires_explicit_arm_before_pose() -> None:
     )
 
 
-def test_configured_controller_receives_pose_stop_and_arm() -> None:
+def test_configured_controller_receives_pose_and_stop() -> None:
     stream = MemoryStream()
     app.state.controller = HeadControllerTransport(stream)
     app.state.controller_status = ControllerStatus(
         configured=True,
         link_state=ControllerLinkState.ONLINE,
     )
-    client.post("/v1/arm")
+    gateway.arm()
     next_sequence = gateway.state().sequence + 1
 
     try:
@@ -257,10 +258,44 @@ def test_configured_controller_receives_pose_stop_and_arm() -> None:
 
     assert pose.status_code == 200
     assert stopped.status_code == 200
-    assert decode_control_command(stream.frames[0]).op == "arm"
-    assert decode_pose_command(stream.frames[1]).seq == 2
-    assert decode_control_command(stream.frames[2]).op == "stop"
+    assert decode_pose_command(stream.frames[0]).seq == 1
+    assert decode_control_command(stream.frames[1]).op == "stop"
     gateway.arm()
+
+
+def test_physical_arm_waits_for_matching_controller_acknowledgement() -> None:
+    stream = MemoryStream()
+    transport = HeadControllerTransport(stream)
+    app.state.controller = transport
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+    )
+
+    def acknowledge() -> None:
+        while not stream.frames:
+            sleep(0.001)
+        transport.accept_telemetry(
+            b'{"v":1,"seq":1,"yaw_mdeg":0,"pitch_mdeg":0,'
+            b'"mode":"neutral","reason":"operator_arm","armed":false,'
+            b'"crc32":"BCAEB397"}\n'
+        )
+
+    acknowledgement = Thread(target=acknowledge)
+    acknowledgement.start()
+    try:
+        response = client.post("/v1/arm")
+    finally:
+        acknowledgement.join(timeout=1)
+        app.state.controller = None
+        app.state.controller_status = ControllerStatus(
+            configured=False,
+            link_state=ControllerLinkState.SIMULATED,
+        )
+
+    assert response.status_code == 200
+    assert decode_control_command(stream.frames[0]).op == "arm"
+    assert gateway.state().reason == "operator_arm"
 
 
 def test_controller_write_failure_latches_gateway_stop() -> None:
@@ -280,7 +315,7 @@ def test_controller_write_failure_latches_gateway_stop() -> None:
 
     assert response.status_code == 503
     assert gateway.state().mode == "stopped"
-    assert gateway.state().reason == "controller_write_failure"
+    assert gateway.state().reason == "controller_arm_failed"
     client.post("/v1/arm")
 
 

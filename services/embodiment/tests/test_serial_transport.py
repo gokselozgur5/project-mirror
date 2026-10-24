@@ -120,3 +120,23 @@ def test_status_handshake_resumes_controller_sequence() -> None:
     synchronized = transport.synchronize(telemetry)
     assert synchronized.seq == 42
     assert transport.publish_control("stop") == 43
+
+
+def test_transport_waits_for_exact_telemetry_acknowledgement() -> None:
+    transport = HeadControllerTransport(MemoryStream())
+    sequence = transport.publish_control("arm")
+    transport.accept_telemetry(
+        b'{"v":1,"seq":1,"yaw_mdeg":0,"pitch_mdeg":0,'
+        b'"mode":"neutral","reason":"operator_arm","armed":false,'
+        b'"crc32":"BCAEB397"}\n'
+    )
+
+    assert transport.wait_for_telemetry(sequence).reason == "operator_arm"
+
+
+def test_transport_acknowledgement_timeout_fails_closed() -> None:
+    transport = HeadControllerTransport(MemoryStream())
+    sequence = transport.publish_control("arm")
+
+    with pytest.raises(SerialTransportError, match="timed out"):
+        transport.wait_for_telemetry(sequence, timeout_s=0.001)

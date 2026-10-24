@@ -180,11 +180,15 @@ def controller() -> HeadControllerTransport | None:
     return configured
 
 
-def fail_closed_after_transport_error(error: SerialTransportError) -> None:
-    gateway.stop(reason="controller_write_failure")
+def fail_closed_after_transport_error(
+    error: SerialTransportError,
+    *,
+    reason: str = "controller_write_failure",
+) -> None:
+    gateway.stop(reason=reason)
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="head controller write failed; gateway stop is latched",
+        detail="head controller command failed; gateway stop is latched",
     ) from error
 
 
@@ -285,9 +289,18 @@ def arm() -> EmbodimentState:
     configured = controller()
     if configured is not None:
         try:
-            configured.publish_control("arm")
+            sequence = configured.publish_control("arm")
+            acknowledgement = configured.wait_for_telemetry(sequence)
+            if (
+                acknowledgement.mode != MotionMode.NEUTRAL
+                or acknowledgement.reason != "operator_arm"
+                or acknowledgement.armed
+            ):
+                raise SerialTransportError("controller returned an invalid arm acknowledgement")
         except SerialTransportError as error:
-            fail_closed_after_transport_error(error)
+            with suppress(SerialTransportError):
+                configured.publish_control("stop")
+            fail_closed_after_transport_error(error, reason="controller_arm_failed")
     return gateway.arm()
 
 
