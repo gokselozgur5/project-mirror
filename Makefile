@@ -3,7 +3,7 @@ SHELL := /bin/bash
 UV ?= uv
 VENV := .venv
 
-.PHONY: bootstrap check test lint typecheck build firmware run-gateway run-web simulate phase1-soak privacy-check
+.PHONY: bootstrap check test lint typecheck build firmware protocol-corpus run-gateway run-web simulate phase1-soak privacy-check
 
 bootstrap:
 	$(UV) sync --locked --all-packages --all-extras
@@ -28,6 +28,9 @@ build:
 firmware:
 	$(UV) run platformio test -d firmware/head-controller -e native
 	$(UV) run platformio run -d firmware/head-controller
+
+protocol-corpus:
+	$(UV) run python scripts/generate-controller-corpus.py
 
 privacy-check:
 	./scripts/check-repository.sh
