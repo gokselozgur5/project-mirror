@@ -74,7 +74,9 @@ with the controller-only bench plan in `docs/HARDWARE.md`:
    stopped behavior.
 5. Attach the evidence to issue 2. Do not close it on compile results alone.
 
-Only after that gate should issue 3 add and profile a real detector backend.
+Issue 3 may profile a real detector in parallel only under the privacy boundary
+and measurement procedure in `docs/DETECTOR_BENCH.md`; it must remain unable to
+address physical motion except through the existing gateway.
 
 ## Working conventions
 
