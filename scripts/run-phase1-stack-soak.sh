@@ -7,6 +7,7 @@ report=${2:-$project_root/runtime/phase1-stack-soak.json}
 gateway_port=${MIRROR_SOAK_PORT:-18080}
 runtime_port=$((gateway_port + 1))
 perception_port=$((gateway_port + 2))
+max_p95_ms=${MIRROR_SOAK_MAX_P95_MS:-50}
 if [[ -n "${MIRROR_PYTHON:-}" ]]; then
   python_bin=$MIRROR_PYTHON
 elif [[ -x "$project_root/.venv/bin/python" ]]; then
@@ -71,5 +72,8 @@ fi
   --runtime-http "http://127.0.0.1:$runtime_port" \
   --perception-http "http://127.0.0.1:$perception_port" \
   --gateway-pid "$gateway_pid" \
+  --runtime-pid "$runtime_pid" \
+  --perception-pid "$perception_pid" \
+  --max-p95-ms "$max_p95_ms" \
   --duration "$duration" \
   --output "$report"

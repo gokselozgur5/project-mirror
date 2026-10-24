@@ -110,8 +110,8 @@ make phase1-soak
 
 The runner starts isolated runtime and gateway processes, publishes synthetic
 observations for five minutes, records HTTP latency, state age, sequence lag,
-failures, and gateway memory growth, then stops publication and verifies the
-heartbeat-neutral transition. Its JSON report is written beneath the ignored
+failures, and gateway/runtime/perception memory growth, then stops publication
+and verifies the heartbeat-neutral transition. Its JSON report is written beneath the ignored
 `runtime/` directory so local operating evidence is not committed accidentally.
 
 ## Shut down
