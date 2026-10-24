@@ -1,11 +1,20 @@
 import asyncio
+import os
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.middleware.cors import CORSMiddleware
 
 from .gateway import CommandRejected, EmbodimentGateway
 from .models import EmbodimentState, Health, PoseTarget
 
 app = FastAPI(title="Project Mirror Embodiment Gateway", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[os.getenv("MIRROR_OPERATOR_ORIGIN", "http://127.0.0.1:5173")],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["content-type"],
+)
 gateway = EmbodimentGateway()
 
 

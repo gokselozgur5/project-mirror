@@ -1,0 +1,58 @@
+:root {
+  color: #edf4ef;
+  background: #0a0d0f;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+
+button { font: inherit; }
+
+main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 40px 0 64px; }
+
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+
+.eyebrow { margin: 0 0 8px; color: #8cf0bd; font: 700 12px/1.2 ui-monospace, monospace; letter-spacing: .16em; }
+
+h1 { margin: 0; font-size: clamp(36px, 7vw, 72px); line-height: .95; letter-spacing: -.055em; }
+
+.connection { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border: 1px solid #293238; border-radius: 999px; color: #9ca9a3; font-size: 13px; }
+.connection span { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.connection.online { color: #8cf0bd; }
+.connection.offline { color: #ff8b7e; }
+
+.stage { position: relative; display: grid; place-items: center; height: min(58vh, 600px); min-height: 390px; margin: 40px 0 18px; overflow: hidden; border: 1px solid #293238; border-radius: 24px; background: radial-gradient(circle at 50% 45%, #24342d 0, #11171a 46%, #090c0e 100%); perspective: 900px; }
+
+.grid { position: absolute; inset: 0; opacity: .16; background-image: linear-gradient(#8cf0bd 1px, transparent 1px), linear-gradient(90deg, #8cf0bd 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(to bottom, transparent, black, transparent); }
+
+.head { position: relative; width: 230px; height: 280px; border: 2px solid #8cf0bd; border-radius: 46% 46% 42% 42%; background: linear-gradient(145deg, #263a32, #111917); box-shadow: 0 0 80px #4df5a52a, inset 0 0 50px #0008; transition: transform 120ms ease-out; transform-style: preserve-3d; }
+
+.eye { position: absolute; top: 105px; width: 52px; height: 30px; overflow: hidden; border: 1px solid #8cf0bd; border-radius: 50%; background: #dff8ec; }
+.eye.left { left: 40px; }
+.eye.right { right: 40px; }
+.eye i { position: absolute; left: 18px; top: 7px; width: 14px; height: 14px; border-radius: 50%; background: #102319; transition: transform 90ms linear; }
+.mouth { position: absolute; left: 85px; bottom: 64px; width: 58px; height: 18px; border-bottom: 2px solid #8cf0bd; border-radius: 50%; }
+.crosshair { position: absolute; width: 16px; height: 16px; border: 1px solid #8cf0bd88; border-radius: 50%; }
+
+.panel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.metric, .controls { border: 1px solid #293238; border-radius: 16px; background: #101518; }
+.metric { padding: 18px; }
+.metric span { display: block; margin-bottom: 8px; color: #728078; font: 700 11px/1 ui-monospace, monospace; letter-spacing: .12em; }
+.metric strong { font: 500 24px/1 ui-monospace, monospace; }
+
+.controls { margin-top: 12px; padding: 22px; }
+.controls h2 { margin: 0 0 6px; font-size: 18px; }
+.controls p { margin: 0 0 18px; color: #91a099; }
+.buttonRow { display: flex; flex-wrap: wrap; gap: 10px; }
+.buttonRow button { padding: 11px 14px; border: 1px solid #354139; border-radius: 10px; color: #dce8e1; background: #18201c; cursor: pointer; }
+.buttonRow button:hover { border-color: #8cf0bd; }
+.buttonRow .stop { margin-left: auto; border-color: #71332e; color: #ffb4aa; background: #291615; }
+
+@media (max-width: 700px) {
+  header { flex-direction: column; }
+  .panel { grid-template-columns: repeat(2, 1fr); }
+  .buttonRow .stop { margin-left: 0; }
+}
