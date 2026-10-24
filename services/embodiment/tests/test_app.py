@@ -1,3 +1,5 @@
+import json
+import zlib
 from threading import Thread
 from time import sleep, time_ns
 
@@ -64,6 +66,31 @@ class ClosableMemoryStream(MemoryStream):
 class InvalidHandshakeStream(ClosableMemoryStream):
     def read_frame(self) -> bytes:
         return b"damaged\n"
+
+
+def telemetry_frame(
+    sequence: int,
+    yaw_mdeg: int,
+    pitch_mdeg: int,
+    mode: str,
+    reason: str,
+    armed: bool,
+) -> bytes:
+    armed_value = 1 if armed else 0
+    payload = (
+        f"1,telemetry,{sequence},{yaw_mdeg},{pitch_mdeg},{mode},{reason},{armed_value}"
+    )
+    frame = {
+        "v": 1,
+        "seq": sequence,
+        "yaw_mdeg": yaw_mdeg,
+        "pitch_mdeg": pitch_mdeg,
+        "mode": mode,
+        "reason": reason,
+        "armed": armed,
+        "crc32": f"{zlib.crc32(payload.encode('ascii')):08X}",
+    }
+    return json.dumps(frame, separators=(",", ":")).encode("ascii") + b"\n"
 
 
 def test_health() -> None:
@@ -228,13 +255,32 @@ def test_stop_requires_explicit_arm_before_pose() -> None:
 
 def test_configured_controller_receives_pose_and_stop() -> None:
     stream = MemoryStream()
-    app.state.controller = HeadControllerTransport(stream)
+    transport = HeadControllerTransport(stream)
+    app.state.controller = transport
     app.state.controller_status = ControllerStatus(
         configured=True,
         link_state=ControllerLinkState.ONLINE,
     )
     gateway.arm()
     next_sequence = gateway.state().sequence + 1
+
+    def acknowledge_pose() -> None:
+        while not stream.frames:
+            sleep(0.001)
+        command = decode_pose_command(stream.frames[0])
+        transport.accept_telemetry(
+            telemetry_frame(
+                command.seq,
+                command.yaw_mdeg,
+                command.pitch_mdeg,
+                "tracking",
+                "pose",
+                True,
+            )
+        )
+
+    acknowledgement = Thread(target=acknowledge_pose)
+    acknowledgement.start()
 
     try:
         pose = client.post(
@@ -250,6 +296,7 @@ def test_configured_controller_receives_pose_and_stop() -> None:
         )
         stopped = client.post("/v1/stop")
     finally:
+        acknowledgement.join(timeout=1)
         app.state.controller = None
         app.state.controller_status = ControllerStatus(
             configured=False,
@@ -258,6 +305,43 @@ def test_configured_controller_receives_pose_and_stop() -> None:
 
     assert pose.status_code == 200
     assert stopped.status_code == 200
+    assert not acknowledgement.is_alive()
+    assert decode_pose_command(stream.frames[0]).seq == 1
+    assert decode_control_command(stream.frames[1]).op == "stop"
+    gateway.arm()
+
+
+def test_physical_pose_fails_closed_without_controller_acknowledgement() -> None:
+    stream = MemoryStream()
+    app.state.controller = HeadControllerTransport(stream)
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+    )
+    gateway.arm()
+
+    try:
+        response = client.post(
+            "/v1/pose",
+            json={
+                "version": 1,
+                "sequence": gateway.state().sequence + 1,
+                "issued_at_ms": time_ns() // 1_000_000,
+                "ttl_ms": 750,
+                "yaw_deg": 5,
+                "pitch_deg": 0,
+            },
+        )
+    finally:
+        app.state.controller = None
+        app.state.controller_status = ControllerStatus(
+            configured=False,
+            link_state=ControllerLinkState.SIMULATED,
+        )
+
+    assert response.status_code == 503
+    assert gateway.state().mode == "stopped"
+    assert gateway.state().reason == "controller_pose_failed"
     assert decode_pose_command(stream.frames[0]).seq == 1
     assert decode_control_command(stream.frames[1]).op == "stop"
     gateway.arm()
@@ -294,6 +378,7 @@ def test_physical_arm_waits_for_matching_controller_acknowledgement() -> None:
         )
 
     assert response.status_code == 200
+    assert not acknowledgement.is_alive()
     assert decode_control_command(stream.frames[0]).op == "arm"
     assert gateway.state().reason == "operator_arm"
 

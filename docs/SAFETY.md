@@ -15,6 +15,8 @@
    the exact arm sequence and stopped-to-neutral transition.
 9. A controller telemetry fault reasserts physical stop even when host state is
    already stopped; host state is not proof of controller state.
+10. Physical pose acceptance requires matching controller telemetry for the
+    exact sequence and applied angles; a write completing is not proof of motion.
 
 ## Privacy defaults
 

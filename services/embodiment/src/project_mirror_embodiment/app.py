@@ -268,9 +268,20 @@ def set_pose(target: PoseTarget) -> EmbodimentState:
     configured = controller()
     if configured is not None:
         try:
-            configured.publish_pose(state)
+            sequence = configured.publish_pose(state)
+            acknowledgement = configured.wait_for_telemetry(sequence)
+            if (
+                acknowledgement.mode != MotionMode.TRACKING
+                or acknowledgement.reason != "pose"
+                or not acknowledgement.armed
+                or acknowledgement.yaw_mdeg != round(state.yaw_deg * 1_000)
+                or acknowledgement.pitch_mdeg != round(state.pitch_deg * 1_000)
+            ):
+                raise SerialTransportError("controller returned an invalid pose acknowledgement")
         except SerialTransportError as error:
-            fail_closed_after_transport_error(error)
+            with suppress(SerialTransportError):
+                configured.publish_control("stop")
+            fail_closed_after_transport_error(error, reason="controller_pose_failed")
     return state
 
 
