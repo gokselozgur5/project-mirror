@@ -10,6 +10,10 @@ app = FastAPI(title="Project Mirror Character Runtime", version="0.1.0")
 policy = AttentionPolicy()
 
 
+def create_gateway_client(base_url: str) -> httpx.AsyncClient:
+    return httpx.AsyncClient(base_url=base_url, timeout=1.0)
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -25,7 +29,7 @@ async def observe(observation: Observation) -> RuntimeDecision:
     gateway_token = os.getenv("MIRROR_GATEWAY_TOKEN")
     headers = {"authorization": f"Bearer {gateway_token}"} if gateway_token else None
     try:
-        async with httpx.AsyncClient(base_url=gateway_url, timeout=1.0) as client:
+        async with create_gateway_client(gateway_url) as client:
             response = await client.post(
                 "/v1/pose",
                 json=decision.pose.model_dump(),
