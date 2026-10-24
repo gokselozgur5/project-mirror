@@ -76,9 +76,7 @@ def test_abrupt_reversal_at_limit_cannot_cross_mechanical_bounds() -> None:
     clock = FakeClock()
     gateway = EmbodimentGateway(clock=clock)
     clock.now_ms = 2_000
-    at_limit = gateway.submit(
-        target(issued_at_ms=2_000, yaw_deg=55, pitch_deg=25)
-    )
+    at_limit = gateway.submit(target(issued_at_ms=2_000, yaw_deg=55, pitch_deg=25))
     clock.now_ms = 2_100
 
     reversed_state = gateway.submit(

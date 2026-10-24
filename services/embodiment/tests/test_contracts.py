@@ -74,6 +74,7 @@ def test_controller_status_matches_public_contract() -> None:
         controller.model_dump(mode="json")
     )
 
+
 def test_observation_example_matches_public_contract() -> None:
     observation = {
         "version": 1,
@@ -95,9 +96,7 @@ def test_serial_command_model_matches_public_contract() -> None:
     )
     command = decode_pose_command(encode_pose_command(state))
 
-    Draft202012Validator(load_schema("serial-pose-command.v1.json")).validate(
-        command.model_dump()
-    )
+    Draft202012Validator(load_schema("serial-pose-command.v1.json")).validate(command.model_dump())
 
 
 def test_serial_control_model_matches_public_contract() -> None:
@@ -114,6 +113,4 @@ def test_serial_telemetry_model_matches_public_contract() -> None:
         b'"mode":"tracking","reason":"pose","armed":true,"crc32":"844925C8"}\n'
     )
 
-    Draft202012Validator(load_schema("serial-telemetry.v1.json")).validate(
-        telemetry.model_dump()
-    )
+    Draft202012Validator(load_schema("serial-telemetry.v1.json")).validate(telemetry.model_dump())
