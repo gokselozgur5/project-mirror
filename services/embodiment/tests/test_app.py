@@ -87,9 +87,7 @@ def telemetry_frame(
     armed: bool,
 ) -> bytes:
     armed_value = 1 if armed else 0
-    payload = (
-        f"1,telemetry,{sequence},{yaw_mdeg},{pitch_mdeg},{mode},{reason},{armed_value}"
-    )
+    payload = f"1,telemetry,{sequence},{yaw_mdeg},{pitch_mdeg},{mode},{reason},{armed_value}"
     frame = {
         "v": 1,
         "seq": sequence,

@@ -13,8 +13,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run the controller-only Gate 1 protocol bench with no servos connected"
     )
-    parser.add_argument("--port", required=True, help="Exact ESP32-S3 serial device path")
-    parser.add_argument("--count", type=int, default=100, help="Malformed corpus frame count")
+    parser.add_argument(
+        "--port", required=True, help="Exact ESP32-S3 serial device path"
+    )
+    parser.add_argument(
+        "--count", type=int, default=100, help="Malformed corpus frame count"
+    )
     parser.add_argument(
         "--confirm-servos-disconnected",
         action="store_true",

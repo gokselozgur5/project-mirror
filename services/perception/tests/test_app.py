@@ -29,9 +29,7 @@ def test_derived_observation_is_forwarded_without_raw_media(
             "version": 1,
             "sequence": 9,
             "observed_at_ms": 1_000,
-            "faces": [
-                {"left": 0.5, "top": 0.0, "right": 1.0, "bottom": 0.5, "confidence": 0.9}
-            ],
+            "faces": [{"left": 0.5, "top": 0.0, "right": 1.0, "bottom": 0.5, "confidence": 0.9}],
         },
     )
 

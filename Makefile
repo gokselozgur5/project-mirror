@@ -17,7 +17,8 @@ test:
 	npm run test:web
 
 lint:
-	$(VENV)/bin/ruff check services/embodiment services/runtime services/perception scripts
+	$(VENV)/bin/ruff format --check services scripts tests
+	$(VENV)/bin/ruff check services/embodiment services/runtime services/perception scripts tests
 	npm run lint
 
 typecheck:

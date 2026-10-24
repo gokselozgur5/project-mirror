@@ -242,8 +242,10 @@ def require_control_token(authorization: Annotated[str | None, Header()] = None)
     if not expected:
         return
     scheme, separator, provided = (authorization or "").partition(" ")
-    if separator != " " or scheme.lower() != "bearer" or not secrets.compare_digest(
-        provided, expected
+    if (
+        separator != " "
+        or scheme.lower() != "bearer"
+        or not secrets.compare_digest(provided, expected)
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

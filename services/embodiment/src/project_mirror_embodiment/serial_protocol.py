@@ -67,9 +67,7 @@ class WireTelemetry(BaseModel):
     yaw_mdeg: int = Field(ge=-55_000, le=55_000)
     pitch_mdeg: int = Field(ge=-25_000, le=25_000)
     mode: Literal["tracking", "neutral", "stopped"]
-    reason: Literal[
-        "startup", "pose", "operator_stop", "operator_arm", "heartbeat_timeout"
-    ]
+    reason: Literal["startup", "pose", "operator_stop", "operator_arm", "heartbeat_timeout"]
     armed: bool
     crc32: str = Field(pattern=r"^[0-9A-F]{8}$")
 
@@ -100,9 +98,7 @@ def encode_pose_command(state: EmbodimentState, *, wire_sequence: int | None = N
     return (command.model_dump_json() + "\n").encode("ascii")
 
 
-def encode_control_command(
-    operation: Literal["stop", "arm", "status"], sequence: int
-) -> bytes:
+def encode_control_command(operation: Literal["stop", "arm", "status"], sequence: int) -> bytes:
     payload = _control_checksum_payload(1, operation, sequence)
     command = WireControlCommand(
         v=1,
@@ -203,8 +199,7 @@ def _telemetry_checksum_payload(
 ) -> bytes:
     armed_value = 1 if armed else 0
     return (
-        f"{version},telemetry,{sequence},{yaw_mdeg},{pitch_mdeg},"
-        f"{mode},{reason},{armed_value}"
+        f"{version},telemetry,{sequence},{yaw_mdeg},{pitch_mdeg},{mode},{reason},{armed_value}"
     ).encode("ascii")
 
 

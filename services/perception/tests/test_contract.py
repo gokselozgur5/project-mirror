@@ -14,9 +14,7 @@ def test_derived_observation_matches_public_contract() -> None:
         FrameDetections(
             sequence=7,
             observed_at_ms=1_000,
-            faces=[
-                FaceCandidate(left=0.5, top=0.0, right=1.0, bottom=0.5, confidence=0.9)
-            ],
+            faces=[FaceCandidate(left=0.5, top=0.0, right=1.0, bottom=0.5, confidence=0.9)],
         )
     )
     schema = json.loads(CONTRACT.read_text(encoding="utf-8"))
