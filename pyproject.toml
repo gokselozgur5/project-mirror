@@ -20,3 +20,6 @@ members = [
   "services/perception",
   "services/runtime"
 ]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
