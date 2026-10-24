@@ -47,6 +47,7 @@ Install PlatformIO Core 6.2.0, then run:
 
 ```bash
 pio run -d firmware/head-controller
+pio test -d firmware/head-controller -e native
 ```
 
 Pins, pulse ranges, and mechanical limits are placeholders until the exact

@@ -3,6 +3,8 @@
 #include <ESP32Servo.h>
 #include <cmath>
 
+#include "protocol_crc.h"
+
 namespace {
 constexpr int kYawPin = 5;
 constexpr int kPitchPin = 6;
@@ -51,14 +53,7 @@ void armIfNeeded() {
 }
 
 uint32_t crc32(const String &payload) {
-  uint32_t crc = 0xFFFFFFFFU;
-  for (size_t index = 0; index < payload.length(); ++index) {
-    crc ^= static_cast<uint8_t>(payload[index]);
-    for (uint8_t bit = 0; bit < 8; ++bit) {
-      crc = (crc >> 1U) ^ ((crc & 1U) != 0U ? 0xEDB88320U : 0U);
-    }
-  }
-  return ~crc;
+  return project_mirror::crc32(payload.c_str(), payload.length());
 }
 
 bool checksumMatches(uint32_t sequence, int32_t yawMilliDegrees,

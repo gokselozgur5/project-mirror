@@ -29,6 +29,7 @@ build:
 	npm run build
 
 firmware:
+	pio test -d firmware/head-controller -e native
 	pio run -d firmware/head-controller
 
 privacy-check:
