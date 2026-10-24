@@ -42,3 +42,6 @@ required angular speed, stall current, noise, and available enclosure space.
 5. Attach the lightest prototype payload.
 6. Run heartbeat-loss and emergency-stop tests.
 7. Only then connect perception-driven commands.
+
+Use the [physical bench plan](BENCH_PLAN.md) for gated measurements, evidence,
+and explicit stop conditions.
