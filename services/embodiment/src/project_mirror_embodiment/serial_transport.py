@@ -2,7 +2,12 @@ from threading import Lock
 from typing import Literal, Protocol
 
 from .models import EmbodimentState
-from .serial_protocol import encode_control_command, encode_pose_command
+from .serial_protocol import (
+    WireTelemetry,
+    decode_telemetry,
+    encode_control_command,
+    encode_pose_command,
+)
 
 
 class WritableStream(Protocol):
@@ -26,6 +31,7 @@ class HeadControllerTransport:
             raise ValueError("initial sequence is outside the v1 range")
         self._stream = stream
         self._sequence = initial_sequence
+        self._last_telemetry_sequence = 0
         self._lock = Lock()
 
     @property
@@ -46,6 +52,16 @@ class HeadControllerTransport:
             self._write_complete(encode_control_command(operation, sequence))
             self._sequence = sequence
             return sequence
+
+    def accept_telemetry(self, frame: bytes) -> WireTelemetry:
+        telemetry = decode_telemetry(frame)
+        with self._lock:
+            if telemetry.seq > self._sequence:
+                raise SerialTransportError("telemetry sequence was never published by this host")
+            if telemetry.seq < self._last_telemetry_sequence:
+                raise SerialTransportError("telemetry sequence moved backwards")
+            self._last_telemetry_sequence = telemetry.seq
+            return telemetry
 
     def _next_sequence(self) -> int:
         if self._sequence == 4_294_967_295:

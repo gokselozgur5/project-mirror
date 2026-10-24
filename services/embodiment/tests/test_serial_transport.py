@@ -10,6 +10,15 @@ from project_mirror_embodiment.serial_transport import (
     SerialTransportError,
 )
 
+TRACKING_TELEMETRY = (
+    b'{"v":1,"seq":1,"yaw_mdeg":12500,"pitch_mdeg":-4000,'
+    b'"mode":"tracking","reason":"pose","armed":true,"crc32":"FDF9E1F0"}\n'
+)
+TRACKING_TELEMETRY_SEQUENCE_2 = (
+    b'{"v":1,"seq":2,"yaw_mdeg":12500,"pitch_mdeg":-4000,'
+    b'"mode":"tracking","reason":"pose","armed":true,"crc32":"58F18A9C"}\n'
+)
+
 
 class MemoryStream:
     def __init__(self) -> None:
@@ -66,3 +75,30 @@ def test_sequence_exhaustion_requires_controller_restart() -> None:
 
     with pytest.raises(SerialTransportError, match="sequence exhausted"):
         transport.publish_control("arm")
+
+
+def test_transport_accepts_telemetry_for_a_published_sequence() -> None:
+    transport = HeadControllerTransport(MemoryStream())
+    transport.publish_pose(state(100))
+
+    telemetry = transport.accept_telemetry(TRACKING_TELEMETRY)
+
+    assert telemetry.seq == 1
+    assert telemetry.mode == "tracking"
+
+
+def test_transport_rejects_unpublished_future_telemetry() -> None:
+    transport = HeadControllerTransport(MemoryStream())
+
+    with pytest.raises(SerialTransportError, match="never published"):
+        transport.accept_telemetry(TRACKING_TELEMETRY)
+
+
+def test_transport_rejects_telemetry_that_moves_backwards() -> None:
+    transport = HeadControllerTransport(MemoryStream())
+    transport.publish_pose(state(100))
+    transport.publish_pose(state(101))
+    transport.accept_telemetry(TRACKING_TELEMETRY_SEQUENCE_2)
+
+    with pytest.raises(SerialTransportError, match="moved backwards"):
+        transport.accept_telemetry(TRACKING_TELEMETRY)
