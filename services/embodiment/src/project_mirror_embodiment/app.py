@@ -32,7 +32,11 @@ async def read_controller_telemetry(
     while True:
         frame = await asyncio.to_thread(device.read_frame)
         if not frame:
-            mark_controller_telemetry_stale(application, now_ms=time_ns() // 1_000_000)
+            mark_controller_telemetry_stale(
+                application,
+                transport,
+                now_ms=time_ns() // 1_000_000,
+            )
             continue
         accept_controller_telemetry(application, transport, frame)
 
@@ -52,6 +56,7 @@ def accept_controller_telemetry(
                 "invalid_frames": previous.invalid_frames + 1,
             }
         )
+        stop_for_controller_fault(transport, reason="invalid_controller_telemetry")
         return
     application.state.controller_status = ControllerStatus(
         configured=True,
@@ -64,7 +69,12 @@ def accept_controller_telemetry(
     )
 
 
-def mark_controller_telemetry_stale(application: FastAPI, *, now_ms: int) -> None:
+def mark_controller_telemetry_stale(
+    application: FastAPI,
+    transport: HeadControllerTransport,
+    *,
+    now_ms: int,
+) -> None:
     previous: ControllerStatus = application.state.controller_status
     if (
         previous.link_state is ControllerLinkState.ONLINE
@@ -74,6 +84,17 @@ def mark_controller_telemetry_stale(application: FastAPI, *, now_ms: int) -> Non
         application.state.controller_status = previous.model_copy(
             update={"link_state": ControllerLinkState.STALE}
         )
+        stop_for_controller_fault(transport, reason="stale_controller_telemetry")
+
+
+def stop_for_controller_fault(transport: HeadControllerTransport, *, reason: str) -> None:
+    if gateway.state().mode is MotionMode.STOPPED:
+        return
+    gateway.stop(reason=reason)
+    try:
+        transport.publish_control("stop")
+    except SerialTransportError:
+        return
 
 
 @asynccontextmanager

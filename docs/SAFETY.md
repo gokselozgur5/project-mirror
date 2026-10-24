@@ -9,6 +9,8 @@
 5. A physical actuator-power stop remains reachable.
 6. Startup never assumes the previous physical pose and remains stop-latched
    until an explicit authenticated arm reaches both host and controller.
+7. Invalid or stale controller telemetry latches a host stop and emits a
+   controller stop; movement does not continue without observability.
 
 ## Privacy defaults
 
