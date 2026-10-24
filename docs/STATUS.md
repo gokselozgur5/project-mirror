@@ -28,6 +28,8 @@ in `docs/evidence/phase1-simulation.md`.
   checksummed integer commands, oversized-frame discard, and heartbeat detach.
 - Host controller transport with an independent monotonic wire sequence,
   complete-write enforcement, and in-memory pose/stop/arm tests.
+- Gateway-to-controller dispatch for pose, stop, and arm; incomplete writes
+  return an error and latch the host gateway stopped.
 - Exact frontend and firmware dependency pins plus public CI.
 
 ## Not implemented or not proven
