@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -41,9 +42,9 @@ class EmbodimentState(StrictModel):
 
 
 class Health(StrictModel):
-    status: str
+    status: Literal["ok", "degraded"]
     mode: MotionMode
-    controller: str
+    controller: Literal["simulated", "serial"]
 
 
 class GatewayMetrics(StrictModel):
