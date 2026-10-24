@@ -27,6 +27,7 @@ const initialState: EmbodimentState = {
 
 export function App() {
   const [state, setState] = useState(initialState);
+  const [stateAgeMs, setStateAgeMs] = useState(0);
   const [connected, setConnected] = useState(false);
   const sequence = useRef(0);
 
@@ -36,7 +37,9 @@ export function App() {
     socket.onclose = () => setConnected(false);
     socket.onerror = () => setConnected(false);
     socket.onmessage = (event) => {
-      setState(JSON.parse(String(event.data)) as EmbodimentState);
+      const nextState = JSON.parse(String(event.data)) as EmbodimentState;
+      setState(nextState);
+      setStateAgeMs(Math.max(0, Date.now() - nextState.updated_at_ms));
     };
     return () => socket.close();
   }, []);
@@ -61,9 +64,12 @@ export function App() {
     await fetch(`${gatewayHttp}/v1/stop`, { method: "POST" });
   };
 
+  const arm = async () => {
+    await fetch(`${gatewayHttp}/v1/arm`, { method: "POST" });
+  };
+
   const faceTransform = `rotateY(${state.yaw_deg * 0.35}deg) rotateX(${-state.pitch_deg * 0.3}deg)`;
   const pupilTransform = `translate(${state.yaw_deg * 0.08}px, ${state.pitch_deg * 0.08}px)`;
-
   return (
     <main>
       <header>
@@ -104,6 +110,10 @@ export function App() {
           <span>SEQUENCE</span>
           <strong>{state.sequence}</strong>
         </div>
+        <div className="metric">
+          <span>RECEIPT AGE</span>
+          <strong>{stateAgeMs} ms</strong>
+        </div>
       </section>
 
       <section className="controls">
@@ -114,6 +124,7 @@ export function App() {
           <button onClick={() => void sendPose(0, -45)}>Look up</button>
           <button onClick={() => void sendPose(0, 0)}>Neutral</button>
           <button onClick={() => void sendPose(90, 0)}>Look right</button>
+          <button className="arm" onClick={() => void arm()}>Arm motion</button>
           <button className="stop" onClick={() => void stop()}>Emergency stop</button>
         </div>
       </section>
