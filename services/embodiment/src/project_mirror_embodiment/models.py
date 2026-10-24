@@ -58,6 +58,7 @@ class GatewayMetrics(StrictModel):
 
 
 class ControllerStatus(StrictModel):
+    version: Literal[1] = 1
     configured: bool
     link_state: ControllerLinkState
     last_sequence: int | None = Field(default=None, ge=0)

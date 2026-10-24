@@ -4,7 +4,13 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from project_mirror_embodiment.models import EmbodimentState, MotionMode, PoseTarget
+from project_mirror_embodiment.models import (
+    ControllerLinkState,
+    ControllerStatus,
+    EmbodimentState,
+    MotionMode,
+    PoseTarget,
+)
 from project_mirror_embodiment.serial_protocol import (
     decode_control_command,
     decode_pose_command,
@@ -52,6 +58,21 @@ def test_embodiment_model_matches_public_contract() -> None:
         state.model_dump(mode="json")
     )
 
+
+def test_controller_status_matches_public_contract() -> None:
+    controller = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+        last_sequence=7,
+        last_mode=MotionMode.TRACKING,
+        last_reason="pose",
+        outputs_armed=True,
+        last_received_at_ms=1_001,
+    )
+
+    Draft202012Validator(load_schema("controller-status.v1.json")).validate(
+        controller.model_dump(mode="json")
+    )
 
 def test_observation_example_matches_public_contract() -> None:
     observation = {

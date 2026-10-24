@@ -7,6 +7,8 @@ version and an explicit migration.
 - `observation.v1.json`: minimal derived perception state.
 - `pose-target.v1.json`: high-level pose request sent to the safe gateway.
 - `embodiment-state.v1.json`: bounded state published to all embodiments.
+- `controller-status.v1.json`: physical controller link and output state shown
+  to the operator.
 - `serial-pose-command.v1.json`: checksummed integer command sent to the head
   controller after gateway bounds are applied.
 - `serial-control-command.v1.json`: checksummed stop or arm transition sent to

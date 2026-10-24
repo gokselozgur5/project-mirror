@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-mirror.local/contracts/controller-status.v1.json",
+  "title": "ControllerStatusV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "configured",
+    "link_state",
+    "last_sequence",
+    "last_mode",
+    "last_reason",
+    "outputs_armed",
+    "last_received_at_ms",
+    "invalid_frames"
+  ],
+  "properties": {
+    "version": { "const": 1 },
+    "configured": { "type": "boolean" },
+    "link_state": {
+      "enum": ["simulated", "awaiting_telemetry", "online", "invalid_telemetry", "stale"]
+    },
+    "last_sequence": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 0, "maximum": 4294967295 }
+      ]
+    },
+    "last_mode": {
+      "oneOf": [
+        { "type": "null" },
+        { "enum": ["tracking", "neutral", "stopped"] }
+      ]
+    },
+    "last_reason": { "type": ["string", "null"] },
+    "outputs_armed": { "type": ["boolean", "null"] },
+    "last_received_at_ms": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 0 }
+      ]
+    },
+    "invalid_frames": { "type": "integer", "minimum": 0 }
+  }
+}
