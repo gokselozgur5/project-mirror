@@ -13,6 +13,7 @@ test:
 	$(VENV)/bin/pytest -q services/embodiment
 	$(VENV)/bin/pytest -q services/runtime
 	$(VENV)/bin/pytest -q services/perception
+	npm run test:web
 
 lint:
 	$(VENV)/bin/ruff check services/embodiment services/runtime services/perception scripts
