@@ -6,8 +6,8 @@ physical controller, servo, power system, or mechanism result.
 ## Checkpoint
 
 - Date: 2026-10-24
-- Implementation revision: `1c76a44d2a1f76aef8d1c1ceefdc2e77805fccdc`
-- Public CI: [run 40103335343](https://github.com/gokselozgur5/project-mirror/actions/runs/40103335343)
+- Implementation revision: `156d7df9415d47274f6cb7774c794774277bf340`
+- Public CI: [run 40103615936](https://github.com/gokselozgur5/project-mirror/actions/runs/40103615936)
 - Platform tested locally: Apple Silicon macOS
 - Firmware target compiled: ESP32-S3 DevKitC-1 N8
 
@@ -17,8 +17,8 @@ physical controller, servo, power system, or mechanism result.
 
 - Repository history privacy and credential checks: passed.
 - Shell syntax, Ruff format/lint, strict mypy, TypeScript, and ESLint: passed.
-- Repository policy tests: 5 passed.
-- Embodiment tests: 82 passed.
+- Repository policy tests: 6 passed.
+- Embodiment tests: 87 passed.
 - Runtime tests: 9 passed.
 - Perception tests: 8 passed.
 - Operator web tests: 14 passed and production build completed.
@@ -37,8 +37,8 @@ A post-motion-change 10-second full-stack run exercised synthetic boxes through
 perception, runtime, gateway, and WebSocket state:
 
 - Commands: 101 sent, 101 accepted, 0 failures.
-- Request latency: 16.55 ms p50, 24.41 ms p95, 44.78 ms maximum.
-- State age: 51.43 ms p50, 97.61 ms p95, 361.90 ms maximum.
+- Request latency: 18.10 ms p50, 29.71 ms p95, 56.14 ms maximum.
+- State age: 52.23 ms p50, 102.80 ms p95, 423.23 ms maximum.
 - Maximum sequence lag: 1.
 - Final transition after publisher stop: `neutral / heartbeat_timeout`.
 
@@ -57,6 +57,8 @@ run in `phase1-simulation.md`.
   health and reasserts physical stop.
 - Host pose integration is hard-clamped after velocity/acceleration planning.
   Deterministic 1,000-step fuzz tests cover bounds and motion rates.
+- Motion integration uses monotonic time, and a fresh pose after heartbeat
+  silence expires the old trajectory before restarting from neutral.
 - The operator sees link and output-armed state and cannot pose or arm an
   unhealthy configured controller. Emergency stop remains available.
 - A pseudo-terminal test crosses the operating-system serial boundary. The

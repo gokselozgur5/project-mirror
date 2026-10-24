@@ -6,7 +6,7 @@ safety model, relevant ADRs, and linked issue before changing a boundary.
 ## Verified checkpoint
 
 - Last updated: 2026-10-24
-- Implementation revision at checkpoint: `1c76a44d2a1f76aef8d1c1ceefdc2e77805fccdc`
+- Implementation revision at checkpoint: `156d7df9415d47274f6cb7774c794774277bf340`
 - Phase 1: accepted in hardware-free simulation
 - Phase 2: software protocol path complete; hardware validation has not started
 
