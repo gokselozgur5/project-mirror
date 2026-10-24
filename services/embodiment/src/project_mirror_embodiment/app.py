@@ -2,6 +2,7 @@ import asyncio
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
+from time import time_ns
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,6 +30,7 @@ async def read_controller_telemetry(
     while True:
         frame = await asyncio.to_thread(device.read_frame)
         if not frame:
+            mark_controller_telemetry_stale(application, now_ms=time_ns() // 1_000_000)
             continue
         accept_controller_telemetry(application, transport, frame)
 
@@ -55,8 +57,21 @@ def accept_controller_telemetry(
         last_sequence=telemetry.seq,
         last_mode=MotionMode(telemetry.mode),
         last_reason=telemetry.reason,
+        last_received_at_ms=time_ns() // 1_000_000,
         invalid_frames=previous.invalid_frames,
     )
+
+
+def mark_controller_telemetry_stale(application: FastAPI, *, now_ms: int) -> None:
+    previous: ControllerStatus = application.state.controller_status
+    if (
+        previous.link_state is ControllerLinkState.ONLINE
+        and previous.last_received_at_ms is not None
+        and now_ms > previous.last_received_at_ms + 1_000
+    ):
+        application.state.controller_status = previous.model_copy(
+            update={"link_state": ControllerLinkState.STALE}
+        )
 
 
 @asynccontextmanager
@@ -120,8 +135,14 @@ def fail_closed_after_transport_error(error: SerialTransportError) -> None:
 
 @app.get("/health", response_model=Health)
 def health() -> Health:
+    controller_status: ControllerStatus = app.state.controller_status
     return Health(
-        status="ok",
+        status=(
+            "ok"
+            if controller_status.link_state
+            in (ControllerLinkState.SIMULATED, ControllerLinkState.ONLINE)
+            else "degraded"
+        ),
         mode=gateway.state().mode,
         controller="serial" if controller() is not None else "simulated",
     )
