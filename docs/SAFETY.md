@@ -19,6 +19,9 @@
     exact sequence and applied angles; a write completing is not proof of motion.
 11. An idle physical link is polled without advancing its command sequence;
     missing status telemetry still becomes stale and reasserts stop.
+12. Integrated motion is clamped again at hard position limits. A hard-limit
+    collision resets planned velocity; position safety takes priority over a
+    smooth acceleration continuation.
 
 ## Privacy defaults
 

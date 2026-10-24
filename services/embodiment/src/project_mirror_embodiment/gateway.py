@@ -205,17 +205,21 @@ def _advance_axis(
 
     distance = target - current
     desired_velocity = _clamp(distance / elapsed_s, -max_rate, max_rate)
+    max_velocity_delta = max_acceleration * elapsed_s
     velocity_delta = _clamp(
         desired_velocity - velocity,
-        -max_acceleration * elapsed_s,
-        max_acceleration * elapsed_s,
+        -max_velocity_delta,
+        max_velocity_delta,
     )
     next_velocity = _clamp(velocity + velocity_delta, -max_rate, max_rate)
-    position_delta = next_velocity * elapsed_s
-    if (
-        distance == 0
-        or (distance > 0 and position_delta > distance)
-        or (distance < 0 and position_delta < distance)
-    ):
-        return target, 0.0
-    return current + position_delta, next_velocity
+    next_position = current + next_velocity * elapsed_s
+    crosses_target = (distance > 0 and next_position > target) or (
+        distance < 0 and next_position < target
+    )
+    if crosses_target:
+        arrival_velocity = distance / elapsed_s
+        can_arrive = abs(arrival_velocity - velocity) <= max_velocity_delta
+        can_stop_next_step = abs(arrival_velocity) <= max_velocity_delta
+        if can_arrive and can_stop_next_step:
+            return target, arrival_velocity
+    return next_position, next_velocity
