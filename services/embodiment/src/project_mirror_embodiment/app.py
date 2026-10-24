@@ -125,6 +125,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
             if (
                 handshake.seq != stop_sequence
                 or handshake.mode != MotionMode.STOPPED
+                or handshake.reason != "operator_stop"
                 or handshake.armed
             ):
                 raise RuntimeError("head controller did not enter stopped startup state")
