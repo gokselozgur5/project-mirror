@@ -13,6 +13,8 @@
    controller stop; movement does not continue without observability.
 8. Host arm remains latched until matching controller telemetry acknowledges
    the exact arm sequence and stopped-to-neutral transition.
+9. A controller telemetry fault reasserts physical stop even when host state is
+   already stopped; host state is not proof of controller state.
 
 ## Privacy defaults
 
