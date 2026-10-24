@@ -1,0 +1,67 @@
+name: Hardware bench report
+description: Record a gated controller, servo, or mechanism bench result
+title: "hardware: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Follow docs/BENCH_PLAN.md. Do not upload private media, credentials,
+        serial device identifiers, or evidence that reveals participants.
+  - type: input
+    id: revision
+    attributes:
+      label: Git revision
+      description: Exact full commit SHA flashed and run.
+    validations:
+      required: true
+  - type: dropdown
+    id: gate
+    attributes:
+      label: Bench gate
+      options:
+        - Gate 1 — controller only
+        - Gate 2 — one unloaded servo
+        - Gate 3 — two unloaded axes
+        - Gate 4 — lightest mechanism
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Measured setup
+      description: >-
+        Board, supply voltage/current limit, servo state, payload state, and
+        configured limits. Do not include private serial numbers.
+    validations:
+      required: true
+  - type: textarea
+    id: procedure
+    attributes:
+      label: Procedure and expected invariant
+      description: List reproducible steps and the bound that must not be crossed.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Observed result
+      description: Include timings and measurements; separate passes from anomalies.
+    validations:
+      required: true
+  - type: input
+    id: evidence
+    attributes:
+      label: Private evidence identifiers
+      description: Optional non-secret references only; do not attach private media.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: The physical actuator-power stop was reachable and tested first.
+          required: true
+        - label: The test stopped at the first failed gate or unexpected movement.
+          required: true
+        - label: No private media, credentials, or identifying device data is attached.
+          required: true
