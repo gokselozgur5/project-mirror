@@ -35,8 +35,9 @@ in `docs/evidence/phase1-simulation.md`.
 ## Not implemented or not proven
 
 - No camera adapter; Phase 1 observations are synthetic.
-- No configured serial port or telemetry reader connects the tested host
-  transport to an ESP32 yet.
+- An explicit `MIRROR_SERIAL_PORT` can open a controller and gateway writes are
+  dispatched, but no telemetry reader connects returned frames to gateway
+  health yet.
 - Firmware checksum handling is compile-verified, not board-tested.
 - Pin numbers, pulse widths, soft limits, servo selection, and power design are
   placeholders pending measured hardware.

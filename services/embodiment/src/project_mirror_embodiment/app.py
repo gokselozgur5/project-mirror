@@ -1,14 +1,33 @@
 import asyncio
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from .gateway import CommandRejected, EmbodimentGateway
 from .models import EmbodimentState, GatewayMetrics, Health, PoseTarget
+from .serial_device import SerialDevice
 from .serial_transport import HeadControllerTransport, SerialTransportError
 
-app = FastAPI(title="Project Mirror Embodiment Gateway", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    device: SerialDevice | None = None
+    port = os.getenv("MIRROR_SERIAL_PORT")
+    if port:
+        device = SerialDevice(port)
+        application.state.controller = HeadControllerTransport(device)
+    try:
+        yield
+    finally:
+        application.state.controller = None
+        if device is not None:
+            device.close()
+
+
+app = FastAPI(title="Project Mirror Embodiment Gateway", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("MIRROR_OPERATOR_ORIGIN", "http://127.0.0.1:5173")],
@@ -35,7 +54,11 @@ def fail_closed_after_transport_error(error: SerialTransportError) -> None:
 
 @app.get("/health", response_model=Health)
 def health() -> Health:
-    return Health(status="ok", mode=gateway.state().mode)
+    return Health(
+        status="ok",
+        mode=gateway.state().mode,
+        controller="serial" if controller() is not None else "simulated",
+    )
 
 
 @app.get("/v1/state", response_model=EmbodimentState)
