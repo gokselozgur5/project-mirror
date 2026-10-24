@@ -58,8 +58,6 @@ class HeadControllerTransport:
 
     def request_status(self) -> None:
         with self._lock:
-            if self._sequence != 0:
-                raise SerialTransportError("status handshake is only valid before publication")
             self._write_complete(encode_control_command("status", 0))
 
     def synchronize(self, frame: bytes) -> WireTelemetry:

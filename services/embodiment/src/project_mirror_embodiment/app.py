@@ -29,13 +29,21 @@ async def read_controller_telemetry(
     device: SerialDevice,
     transport: HeadControllerTransport,
 ) -> None:
+    last_poll_at_ms = time_ns() // 1_000_000
     while True:
         frame = await asyncio.to_thread(device.read_frame)
         if not frame:
+            now_ms = time_ns() // 1_000_000
+            last_poll_at_ms = poll_controller_status_if_due(
+                application,
+                transport,
+                now_ms=now_ms,
+                last_poll_at_ms=last_poll_at_ms,
+            )
             mark_controller_telemetry_stale(
                 application,
                 transport,
-                now_ms=time_ns() // 1_000_000,
+                now_ms=now_ms,
             )
             continue
         accept_controller_telemetry(application, transport, frame)
@@ -88,6 +96,31 @@ def mark_controller_telemetry_stale(
             update={"link_state": ControllerLinkState.STALE, "outputs_armed": None}
         )
         stop_for_controller_fault(transport, reason="stale_controller_telemetry")
+
+
+def poll_controller_status_if_due(
+    application: FastAPI,
+    transport: HeadControllerTransport,
+    *,
+    now_ms: int,
+    last_poll_at_ms: int,
+) -> int:
+    current: ControllerStatus = application.state.controller_status
+    if (
+        current.link_state is ControllerLinkState.ONLINE
+        and current.last_received_at_ms is not None
+        and now_ms > current.last_received_at_ms + 500
+        and now_ms > last_poll_at_ms + 500
+    ):
+        try:
+            transport.request_status()
+        except SerialTransportError:
+            application.state.controller_status = current.model_copy(
+                update={"link_state": ControllerLinkState.STALE, "outputs_armed": None}
+            )
+            stop_for_controller_fault(transport, reason="controller_status_poll_failed")
+        return now_ms
+    return last_poll_at_ms
 
 
 def stop_for_controller_fault(transport: HeadControllerTransport, *, reason: str) -> None:

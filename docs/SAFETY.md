@@ -17,6 +17,8 @@
    already stopped; host state is not proof of controller state.
 10. Physical pose acceptance requires matching controller telemetry for the
     exact sequence and applied angles; a write completing is not proof of motion.
+11. An idle physical link is polled without advancing its command sequence;
+    missing status telemetry still becomes stale and reasserts stop.
 
 ## Privacy defaults
 

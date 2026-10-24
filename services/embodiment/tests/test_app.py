@@ -11,8 +11,9 @@ from project_mirror_embodiment.app import (
     app,
     gateway,
     mark_controller_telemetry_stale,
+    poll_controller_status_if_due,
 )
-from project_mirror_embodiment.models import ControllerLinkState, ControllerStatus
+from project_mirror_embodiment.models import ControllerLinkState, ControllerStatus, MotionMode
 from project_mirror_embodiment.serial_protocol import (
     decode_control_command,
     decode_pose_command,
@@ -503,6 +504,63 @@ def test_silent_controller_becomes_stale_and_health_degrades() -> None:
     assert gateway.state().mode == "stopped"
     assert gateway.state().reason == "stale_controller_telemetry"
     assert decode_control_command(stream.frames[-1]).op == "stop"
+    app.state.controller_status = ControllerStatus(
+        configured=False,
+        link_state=ControllerLinkState.SIMULATED,
+    )
+    gateway.arm()
+
+
+def test_idle_online_controller_is_polled_without_advancing_sequence() -> None:
+    stream = MemoryStream()
+    transport = HeadControllerTransport(stream, initial_sequence=4)
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+        last_sequence=4,
+        last_received_at_ms=1_000,
+    )
+
+    last_poll = poll_controller_status_if_due(
+        app,
+        transport,
+        now_ms=1_501,
+        last_poll_at_ms=1_000,
+    )
+
+    assert last_poll == 1_501
+    assert decode_control_command(stream.frames[-1]).op == "status"
+    assert transport.sequence == 4
+
+    app.state.controller_status = ControllerStatus(
+        configured=False,
+        link_state=ControllerLinkState.SIMULATED,
+    )
+
+
+def test_failed_controller_poll_degrades_health_and_stops() -> None:
+    transport = HeadControllerTransport(ShortWriteStream(), initial_sequence=4)
+    gateway.arm()
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+        last_sequence=4,
+        last_received_at_ms=1_000,
+        outputs_armed=True,
+    )
+
+    poll_controller_status_if_due(
+        app,
+        transport,
+        now_ms=1_501,
+        last_poll_at_ms=1_000,
+    )
+
+    assert app.state.controller_status.link_state is ControllerLinkState.STALE
+    assert app.state.controller_status.outputs_armed is None
+    assert gateway.state().mode is MotionMode.STOPPED
+    assert gateway.state().reason == "controller_status_poll_failed"
+
     app.state.controller_status = ControllerStatus(
         configured=False,
         link_state=ControllerLinkState.SIMULATED,
