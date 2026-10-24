@@ -33,12 +33,12 @@ dependencies were audited. npm reported zero vulnerabilities.
 
 ## Runtime smoke
 
-A post-motion-change 10-second full-stack run exercised synthetic boxes through
+A post-motion-change 60-second full-stack run exercised synthetic boxes through
 perception, runtime, gateway, and WebSocket state:
 
-- Commands: 101 sent, 101 accepted, 0 failures.
-- Request latency: 18.10 ms p50, 29.71 ms p95, 56.14 ms maximum.
-- State age: 52.23 ms p50, 102.80 ms p95, 423.23 ms maximum.
+- Commands: 601 sent, 601 accepted, 0 failures.
+- Request latency: 18.20 ms p50, 28.34 ms p95, 48.82 ms maximum.
+- State age: 51.00 ms p50, 98.57 ms p95, 390.63 ms maximum.
 - Maximum sequence lag: 1.
 - Final transition after publisher stop: `neutral / heartbeat_timeout`.
 
