@@ -34,6 +34,10 @@ Produces observations such as normalized face direction, voice activity, and
 transcript segments. It does not decide how the character should behave and
 does not persist raw media by default.
 
+For visual attention, camera pixels stay inside the local detector adapter.
+Only derived normalized boxes cross into the perception service, and only the
+selected direction crosses into the character runtime. See ADR 0006.
+
 ### Character runtime
 
 Owns the session state machine, turn taking, interruption, expression intent,
