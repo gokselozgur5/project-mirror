@@ -21,3 +21,11 @@ curl -X POST http://127.0.0.1:8080/v1/pose \
 
 Use a real current Unix millisecond timestamp for normal clients. Timestamp `0`
 is only accepted in tests that inject their own clock.
+
+## Head-controller transport
+
+`HeadControllerTransport` converts bounded states and explicit stop/arm actions
+to checksummed controller frames. It owns a monotonic wire sequence independent
+of the source pose sequence, because stop and timeout transitions may not
+advance that source value. Its in-memory transport tests do not open a serial
+port; selecting a device and validating telemetry remain Phase 2 work.

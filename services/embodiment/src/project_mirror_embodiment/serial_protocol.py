@@ -44,17 +44,18 @@ class WireControlCommand(BaseModel):
         return value
 
 
-def encode_pose_command(state: EmbodimentState) -> bytes:
+def encode_pose_command(state: EmbodimentState, *, wire_sequence: int | None = None) -> bytes:
     """Encode an already-bounded gateway state as one newline-delimited frame."""
-    if state.sequence < 1:
+    sequence = state.sequence if wire_sequence is None else wire_sequence
+    if sequence < 1:
         raise SerialProtocolError("sequence must be positive")
 
     yaw_mdeg = round(state.yaw_deg * 1_000)
     pitch_mdeg = round(state.pitch_deg * 1_000)
-    payload = _checksum_payload(1, state.sequence, yaw_mdeg, pitch_mdeg)
+    payload = _checksum_payload(1, sequence, yaw_mdeg, pitch_mdeg)
     command = WirePoseCommand(
         v=1,
-        seq=state.sequence,
+        seq=sequence,
         yaw_mdeg=yaw_mdeg,
         pitch_mdeg=pitch_mdeg,
         crc32=_crc32(payload),
