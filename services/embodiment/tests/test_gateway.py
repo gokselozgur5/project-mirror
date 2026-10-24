@@ -109,6 +109,53 @@ def test_deterministic_motion_fuzz_stays_inside_mechanical_bounds() -> None:
         assert -25 <= state.pitch_deg <= 25
 
 
+def test_motion_fuzz_obeys_rate_and_acceleration_away_from_hard_limits() -> None:
+    random_source = random.Random(20261025)
+    clock = FakeClock()
+    gateway = EmbodimentGateway(clock=clock)
+    previous_yaw = 0.0
+    previous_velocity = 0.0
+
+    for sequence in range(1, 1_001):
+        elapsed_ms = random_source.randint(20, 100)
+        clock.now_ms += elapsed_ms
+        state = gateway.submit(
+            target(
+                sequence=sequence,
+                issued_at_ms=clock.now_ms,
+                yaw_deg=random_source.uniform(-40, 40),
+                pitch_deg=0,
+            )
+        )
+        elapsed_s = elapsed_ms / 1_000
+        velocity = (state.yaw_deg - previous_yaw) / elapsed_s
+        assert abs(velocity) <= 120 + 1e-9
+        if abs(state.yaw_deg) < 54.999 and abs(previous_yaw) < 54.999:
+            acceleration = abs(velocity - previous_velocity) / elapsed_s
+            assert acceleration <= 360 + 1e-6
+        previous_yaw = state.yaw_deg
+        previous_velocity = velocity
+
+
+def test_constant_target_settles_without_a_limit_cycle() -> None:
+    clock = FakeClock()
+    gateway = EmbodimentGateway(clock=clock)
+
+    for sequence in range(1, 101):
+        clock.now_ms += 100
+        state = gateway.submit(
+            target(
+                sequence=sequence,
+                issued_at_ms=clock.now_ms,
+                yaw_deg=10,
+                pitch_deg=-5,
+            )
+        )
+
+    assert state.yaw_deg == pytest.approx(10)
+    assert state.pitch_deg == pytest.approx(-5)
+
+
 def test_rejects_replayed_sequence() -> None:
     gateway = EmbodimentGateway(clock=FakeClock())
     gateway.submit(target())
