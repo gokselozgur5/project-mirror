@@ -53,6 +53,21 @@ class HeadControllerTransport:
             self._sequence = sequence
             return sequence
 
+    def request_status(self) -> None:
+        with self._lock:
+            if self._sequence != 0:
+                raise SerialTransportError("status handshake is only valid before publication")
+            self._write_complete(encode_control_command("status", 0))
+
+    def synchronize(self, frame: bytes) -> WireTelemetry:
+        telemetry = decode_telemetry(frame)
+        with self._lock:
+            if self._sequence != 0:
+                raise SerialTransportError("transport has already published a command")
+            self._sequence = telemetry.seq
+            self._last_telemetry_sequence = telemetry.seq
+            return telemetry
+
     def accept_telemetry(self, frame: bytes) -> WireTelemetry:
         telemetry = decode_telemetry(frame)
         with self._lock:

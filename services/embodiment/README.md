@@ -46,6 +46,9 @@ opened fails service startup instead of silently falling back to simulation.
 Physical mode also refuses to start without a control token. Pose and arm
 require its bearer authorization; emergency stop deliberately remains
 available without it.
+Startup also requires a valid checksummed status handshake; the host resumes
+above the controller's existing wire sequence instead of assuming the board
+restarted with it.
 Validated controller telemetry is exposed at `/v1/controller`; corrupt,
 unpublished-future, and backwards sequence frames are counted and never
 reported as an online controller state.

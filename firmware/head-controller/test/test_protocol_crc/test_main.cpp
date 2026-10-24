@@ -13,6 +13,8 @@ void testPoseGoldenVector() { assertCrc("1,42,12500,-4000", 0x91F71A45U); }
 
 void testStopGoldenVector() { assertCrc("1,stop,43", 0x79595F22U); }
 
+void testStatusGoldenVector() { assertCrc("1,status,0", 0xE0C2D5D9U); }
+
 void testTrackingTelemetryGoldenVector() {
   assertCrc("1,telemetry,42,12500,-4000,tracking,pose,1", 0x844925C8U);
 }
@@ -20,13 +22,19 @@ void testTrackingTelemetryGoldenVector() {
 void testTimeoutTelemetryGoldenVector() {
   assertCrc("1,telemetry,44,12500,-4000,neutral,heartbeat_timeout,0", 0xD19F41A0U);
 }
+
+void testStartupTelemetryGoldenVector() {
+  assertCrc("1,telemetry,42,0,0,neutral,startup,0", 0x3917A406U);
+}
 }  // namespace
 
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(testPoseGoldenVector);
   RUN_TEST(testStopGoldenVector);
+  RUN_TEST(testStatusGoldenVector);
   RUN_TEST(testTrackingTelemetryGoldenVector);
   RUN_TEST(testTimeoutTelemetryGoldenVector);
+  RUN_TEST(testStartupTelemetryGoldenVector);
   return UNITY_END();
 }

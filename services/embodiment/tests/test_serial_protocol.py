@@ -99,6 +99,16 @@ def test_control_command_tampering_is_rejected() -> None:
         decode_control_command(frame)
 
 
+def test_status_command_is_sequence_zero_and_checksummed() -> None:
+    command = decode_control_command(encode_control_command("status", 0))
+
+    assert command.op == "status"
+    assert command.seq == 0
+
+    with pytest.raises(ValueError, match="status requires sequence zero"):
+        encode_control_command("status", 1)
+
+
 def test_telemetry_golden_vector() -> None:
     frame = (
         b'{"v":1,"seq":42,"yaw_mdeg":12500,"pitch_mdeg":-4000,'

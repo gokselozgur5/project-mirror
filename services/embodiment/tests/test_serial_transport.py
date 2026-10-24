@@ -102,3 +102,21 @@ def test_transport_rejects_telemetry_that_moves_backwards() -> None:
 
     with pytest.raises(SerialTransportError, match="moved backwards"):
         transport.accept_telemetry(TRACKING_TELEMETRY)
+
+
+def test_status_handshake_resumes_controller_sequence() -> None:
+    stream = MemoryStream()
+    transport = HeadControllerTransport(stream)
+    telemetry = (
+        b'{"v":1,"seq":42,"yaw_mdeg":0,"pitch_mdeg":0,'
+        b'"mode":"neutral","reason":"startup","armed":false,"crc32":"3917A406"}\n'
+    )
+
+    transport.request_status()
+
+    assert decode_control_command(stream.frames[0]).op == "status"
+    assert decode_control_command(stream.frames[0]).seq == 0
+    assert transport.sequence == 0
+    synchronized = transport.synchronize(telemetry)
+    assert synchronized.seq == 42
+    assert transport.publish_control("stop") == 43

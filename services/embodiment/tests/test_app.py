@@ -37,11 +37,19 @@ class ClosableMemoryStream(MemoryStream):
     def __init__(self) -> None:
         super().__init__()
         self.closed = False
+        self.handshake_sent = False
 
     def close(self) -> None:
         self.closed = True
 
     def read_frame(self) -> bytes:
+        if not self.handshake_sent:
+            self.handshake_sent = True
+            return (
+                b'{"v":1,"seq":0,"yaw_mdeg":0,"pitch_mdeg":0,'
+                b'"mode":"neutral","reason":"startup","armed":false,'
+                b'"crc32":"5799F42D"}\n'
+            )
         sleep(0.01)
         return b""
 
@@ -66,6 +74,7 @@ def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.Monk
 
     with TestClient(app) as configured_client:
         assert configured_client.get("/health").json()["controller"] == "serial"
+        assert configured_client.get("/v1/controller").json()["last_sequence"] == 0
 
     assert device.closed is True
     assert app.state.controller is None
