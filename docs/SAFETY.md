@@ -3,7 +3,8 @@
 ## Safety invariants
 
 1. Models express intent; deterministic code controls actuators.
-2. Position, velocity, and acceleration are clamped at the gateway and firmware.
+2. Position, velocity, and acceleration are bounded at the gateway; firmware
+   independently clamps final position and owns heartbeat detach.
 3. Motion requires a fresh heartbeat and a calibrated controller.
 4. Loss of communication moves to neutral or removes servo torque.
 5. A physical actuator-power stop remains reachable.
