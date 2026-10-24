@@ -24,6 +24,20 @@ class MotionLimits:
     pitch_acceleration_deg_s2: float = 270.0
     max_clock_skew_ms: int = 250
 
+    def __post_init__(self) -> None:
+        if not self.yaw_min_deg <= 0 <= self.yaw_max_deg:
+            raise ValueError("yaw limits must contain neutral")
+        if not self.pitch_min_deg <= 0 <= self.pitch_max_deg:
+            raise ValueError("pitch limits must contain neutral")
+        if self.yaw_min_deg >= self.yaw_max_deg or self.pitch_min_deg >= self.pitch_max_deg:
+            raise ValueError("motion limits require a positive range")
+        if self.yaw_rate_deg_s <= 0 or self.pitch_rate_deg_s <= 0:
+            raise ValueError("motion rates must be positive")
+        if self.yaw_acceleration_deg_s2 <= 0 or self.pitch_acceleration_deg_s2 <= 0:
+            raise ValueError("motion accelerations must be positive")
+        if self.max_clock_skew_ms < 0:
+            raise ValueError("clock skew allowance cannot be negative")
+
 
 class CommandRejected(ValueError):
     """Raised when a command violates a runtime safety invariant."""
