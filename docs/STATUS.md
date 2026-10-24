@@ -26,12 +26,15 @@ in `docs/evidence/phase1-simulation.md`.
 - Reproducible short and five-minute full-stack soak runners.
 - ESP32 scaffold with independent angle clamp, stale-sequence rejection,
   checksummed integer commands, oversized-frame discard, and heartbeat detach.
+- Host controller transport with an independent monotonic wire sequence,
+  complete-write enforcement, and in-memory pose/stop/arm tests.
 - Exact frontend and firmware dependency pins plus public CI.
 
 ## Not implemented or not proven
 
 - No camera adapter; Phase 1 observations are synthetic.
-- No host serial writer connects gateway state to an ESP32 yet.
+- No configured serial port or telemetry reader connects the tested host
+  transport to an ESP32 yet.
 - Firmware checksum handling is compile-verified, not board-tested.
 - Pin numbers, pulse widths, soft limits, servo selection, and power design are
   placeholders pending measured hardware.
@@ -46,12 +49,11 @@ in `docs/evidence/phase1-simulation.md`.
 Continue [issue 2](https://github.com/gokselozgur5/project-mirror/issues/2):
 
 1. Define versioned, checksummed telemetry and explicit stop/arm frames.
-2. Give the physical transport its own monotonic wire sequence; source pose
-   sequence cannot represent stop or timeout transitions by itself.
-3. Build a host serial adapter against an in-memory fake before opening a port.
-4. Add native or on-board golden-vector tests proving Python and firmware CRC
+2. Add a configured serial port and telemetry reader around the tested host
+   transport without making hardware a default runtime dependency.
+3. Add native or on-board golden-vector tests proving Python and firmware CRC
    implementations agree.
-5. Only then perform the controller-only bench sequence in `docs/HARDWARE.md`.
+4. Only then perform the controller-only bench sequence in `docs/HARDWARE.md`.
 
 Do not close the issue on the strength of a firmware compile. Its acceptance
 criteria require real disconnect and malformed-frame behavior on the board.
