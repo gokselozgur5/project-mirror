@@ -28,9 +28,10 @@ is only accepted in tests that inject their own clock.
 to checksummed controller frames. It owns a monotonic wire sequence independent
 of the source pose sequence, because stop and timeout transitions may not
 advance that source value. Its in-memory transport tests do not open a serial
-port; selecting a device and validating telemetry remain Phase 2 work. When a
-transport is configured on the application, incomplete writes fail closed by
-latching the host gateway stopped.
+port. Fake-device tests cover status synchronization, pose/stop/arm dispatch,
+telemetry validation, acknowledgement timeouts, and incomplete writes. These
+tests do not replace the controller-only physical bench gate. Any transport or
+telemetry failure latches the host gateway stopped.
 
 To open a controller explicitly, set the serial device before starting the
 gateway:
@@ -52,3 +53,7 @@ restarted with it.
 Validated controller telemetry is exposed at `/v1/controller`; corrupt,
 unpublished-future, and backwards sequence frames are counted and never
 reported as an online controller state.
+Arm does not release the host latch until the controller returns matching
+checksummed telemetry for that exact wire sequence. Use the guarded Gate 1
+harness documented in [`docs/BENCH_PLAN.md`](../../docs/BENCH_PLAN.md) before
+attaching any servo.

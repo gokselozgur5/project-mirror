@@ -12,7 +12,7 @@ make bootstrap
 make check
 ```
 
-`make bootstrap` creates `.venv`, installs both Python services in editable
+`make bootstrap` creates `.venv`, installs all three Python services in editable
 mode, and installs the pinned web dependencies. `make check` runs the privacy
 gate, linters, strict Python type checks, service tests, and the production web
 build.
@@ -50,6 +50,8 @@ current browser session. The browser keeps it only in memory. Stop remains
 unauthenticated so a missing credential cannot prevent an emergency stop.
 After a physical controller handshake, both host and firmware remain
 stop-latched until an authenticated explicit arm.
+The host waits for matching controller arm telemetry before releasing its own
+latch; a missing or inconsistent acknowledgement fails closed and emits stop.
 
 Terminal 2 — character runtime:
 

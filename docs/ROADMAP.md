@@ -26,9 +26,11 @@ Exit: a five-minute simulation stays bounded and does not accumulate latency.
 
 ## Phase 2 — physical gaze
 
-Status: software groundwork in progress. Serial contracts, host transport,
-firmware parsing, telemetry monitoring, authentication, malformed-frame corpus,
-and a gated bench plan exist; no board or actuator result has been accepted.
+Status: the host and firmware protocol path is complete in software. Serial
+contracts, reconnect synchronization, fail-closed telemetry monitoring,
+authentication, exact arm acknowledgement, malformed-frame corpus, and an
+automated controller-only bench harness exist. No board or actuator result has
+been accepted.
 
 - ESP32 serial protocol and heartbeat.
 - Pan-tilt assembly with calibrated soft limits.
