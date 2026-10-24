@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import { controlHeaders, initialState, isEmbodimentState } from "./gateway";
+import {
+  controlHeaders,
+  isControllerStatus,
+  initialState,
+  isEmbodimentState,
+} from "./gateway";
 
 const gatewayHttp = import.meta.env.VITE_GATEWAY_HTTP ?? "http://127.0.0.1:8080";
 const gatewayWs = import.meta.env.VITE_GATEWAY_WS ?? "ws://127.0.0.1:8080/v1/stream";
@@ -15,6 +20,7 @@ export function App() {
   const [connected, setConnected] = useState(false);
   const [commandStatus, setCommandStatus] = useState("No command sent");
   const [controlToken, setControlToken] = useState("");
+  const [controllerLink, setControllerLink] = useState("simulated");
   const sequence = useRef(0);
 
   useEffect(() => {
@@ -36,6 +42,26 @@ export function App() {
       }
     };
     return () => socket.close();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const poll = async () => {
+      try {
+        const response = await fetch(`${gatewayHttp}/v1/controller`);
+        if (!response.ok) return;
+        const payload: unknown = await response.json();
+        if (active && isControllerStatus(payload)) setControllerLink(payload.link_state);
+      } catch {
+        if (active) setControllerLink("unavailable");
+      }
+    };
+    void poll();
+    const timer = window.setInterval(() => void poll(), 500);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, []);
 
   const sendPose = async (yawDeg: number, pitchDeg: number) => {
@@ -129,6 +155,10 @@ export function App() {
         <div className="metric">
           <span>RECEIPT AGE</span>
           <strong>{stateAgeMs} ms</strong>
+        </div>
+        <div className="metric controllerMetric">
+          <span>CONTROLLER</span>
+          <strong>{controllerLink}</strong>
         </div>
       </section>
 

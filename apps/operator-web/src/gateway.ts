@@ -10,6 +10,16 @@ export type EmbodimentState = {
   reason: string | null;
 };
 
+export type ControllerStatus = {
+  configured: boolean;
+  link_state: "simulated" | "awaiting_telemetry" | "online" | "invalid_telemetry" | "stale";
+  last_sequence: number | null;
+  last_mode: MotionMode | null;
+  last_reason: string | null;
+  last_received_at_ms: number | null;
+  invalid_frames: number;
+};
+
 export const initialState: EmbodimentState = {
   version: 1,
   sequence: 0,
@@ -50,4 +60,19 @@ export function controlHeaders(token: string, includeContentType: boolean) {
   if (includeContentType) headers["content-type"] = "application/json";
   if (token) headers.authorization = `Bearer ${token}`;
   return headers;
+}
+
+export function isControllerStatus(value: unknown): value is ControllerStatus {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.configured === "boolean" &&
+    (candidate.link_state === "simulated" ||
+      candidate.link_state === "awaiting_telemetry" ||
+      candidate.link_state === "online" ||
+      candidate.link_state === "invalid_telemetry" ||
+      candidate.link_state === "stale") &&
+    Number.isSafeInteger(candidate.invalid_frames) &&
+    Number(candidate.invalid_frames) >= 0
+  );
 }
