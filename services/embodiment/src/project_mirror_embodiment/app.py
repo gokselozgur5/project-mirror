@@ -141,7 +141,7 @@ def fail_closed_after_transport_error(error: SerialTransportError) -> None:
 
 def require_control_token(authorization: Annotated[str | None, Header()] = None) -> None:
     expected = os.getenv("MIRROR_CONTROL_TOKEN")
-    if expected is None:
+    if not expected:
         return
     scheme, separator, provided = (authorization or "").partition(" ")
     if separator != " " or scheme.lower() != "bearer" or not secrets.compare_digest(

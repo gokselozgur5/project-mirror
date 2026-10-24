@@ -97,6 +97,14 @@ def test_pose_and_arm_require_configured_bearer_but_stop_remains_available(
     )
 
 
+def test_empty_control_token_keeps_simulation_unauthenticated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "")
+
+    assert client.post("/v1/arm").status_code == 200
+
+
 def test_pose_endpoint_clamps_values() -> None:
     now_ms = time_ns() // 1_000_000
     response = client.post(
