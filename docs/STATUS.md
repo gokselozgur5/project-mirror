@@ -6,14 +6,14 @@ safety model, relevant ADRs, and linked issue before changing a boundary.
 ## Verified checkpoint
 
 - Last updated: 2026-10-24
-- Implementation revision at checkpoint: `7818ee496e66fdc5c83fda179f524dd4dde414ee`
+- Implementation revision at checkpoint: `1c76a44d2a1f76aef8d1c1ceefdc2e77805fccdc`
 - Phase 1: accepted in hardware-free simulation
 - Phase 2: software protocol path complete; hardware validation has not started
 
 Public CI covers repository privacy rules, Python lint, strict types and tests,
 a short full-stack soak, web lint/types/tests/build, native protocol vectors, and
-an ESP32 firmware compile. The local five-minute result and its limits are
-recorded in `docs/evidence/phase1-simulation.md`.
+an ESP32 firmware compile. Evidence and limits are recorded in
+`docs/evidence/phase1-simulation.md` and `docs/evidence/phase2-software.md`.
 
 ## Implemented and verified in software
 
@@ -24,10 +24,11 @@ recorded in `docs/evidence/phase1-simulation.md`.
 - End-to-end synthetic perception-to-runtime-to-gateway-to-browser path.
 - Bounded gateway with stale, future, and sequence rejection; velocity and
   acceleration limits; metrics; a latched stop; explicit arm; and heartbeat
-  neutral behavior.
+  neutral behavior. Integrated outputs receive a final hard-position clamp and
+  deterministic motion fuzz coverage.
 - Browser operator view consuming canonical gateway state and surfacing
-  controller health. Motion and arm controls are disabled when a configured
-  controller is unhealthy; stop remains available.
+  controller link and output-armed state. Motion and arm controls are disabled
+  when a configured controller is unhealthy; stop remains available.
 - Reproducible short and five-minute full-stack soak runners. The five-minute
   acceptance run completed 3,001 of 3,001 requests without a failure.
 - ESP32-S3 firmware scaffold with independent angle clamps, monotonic sequence
@@ -40,8 +41,14 @@ recorded in `docs/evidence/phase1-simulation.md`.
   state, sends stop, and requires matching telemetry before startup succeeds.
 - Physical arm acknowledgement gate: host arm stays latched until the exact
   command sequence is acknowledged with the expected controller transition.
-- Bearer authorization for physical pose and arm calls. Emergency stop is
-  intentionally unauthenticated.
+- Physical pose acknowledgement gate: success requires matching applied angles,
+  sequence, tracking mode, and armed state.
+- Idle status polling does not advance the command sequence; link silence and
+  poll failures degrade health and reassert stop.
+- Bearer authorization with a minimum 32-character token for physical pose and
+  arm calls. Emergency stop is intentionally unauthenticated.
+- Guarded controller-only bench automation plus a real operating-system
+  pseudo-terminal transport test; neither is physical-board evidence.
 - Deterministic 100-frame malformed protocol corpus. Offline host and native
   firmware protocol tests reject malformed input and share golden CRC vectors.
 - Exact Python, frontend, and firmware dependency locks plus scheduled public
