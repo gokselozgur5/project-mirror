@@ -23,6 +23,10 @@
 12. Integrated motion is clamped again at hard position limits. A hard-limit
     collision resets planned velocity; position safety takes priority over a
     smooth acceleration continuation.
+13. Cross-process freshness uses wall time, while motion integration uses a
+    monotonic clock. A wall-clock adjustment cannot enlarge a motion step.
+14. A fresh command after heartbeat silence first expires the old trajectory
+    and restarts from neutral; observing state is not required for expiry.
 
 ## Privacy defaults
 
