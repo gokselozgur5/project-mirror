@@ -34,6 +34,9 @@ jobs:
       - run: uv run ruff check services/runtime scripts
       - run: uv run mypy services/runtime/src
       - run: uv run pytest -q services/runtime
+      - run: uv run ruff check services/perception
+      - run: uv run mypy services/perception/src
+      - run: uv run pytest -q services/perception
       - run: MIRROR_PYTHON="$(pwd)/.venv/bin/python" ./scripts/run-phase1-stack-soak.sh 3 runtime/phase1-ci-smoke.json
 
   operator-web:
