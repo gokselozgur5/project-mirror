@@ -68,7 +68,9 @@ on a physical board or servo.
 
 ## Quick start
 
-Prerequisites are Python 3.11 or newer, uv, Node.js 22 or newer, and `curl`.
+Prerequisites are Python 3.11 or newer, uv 0.11.8, Node.js 22 or newer, and
+`curl`. The repository includes `.python-version` and `.nvmrc` hints matching
+CI's baseline runtimes.
 
 ```bash
 make bootstrap
