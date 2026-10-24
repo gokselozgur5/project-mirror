@@ -51,15 +51,12 @@ class FakeController:
         return len(data)
 
     def read_frame(self) -> bytes:
+        if not self.responses and self.armed:
+            self.armed = False
+            return telemetry(self.sequence, "neutral", "heartbeat_timeout", False)
         if not self.responses:
             return b""
         return self.responses.pop(0)
-
-    def heartbeat_timeout(self, _seconds: float) -> None:
-        self.armed = False
-        self.responses.append(
-            telemetry(self.sequence, "neutral", "heartbeat_timeout", False)
-        )
 
 
 class UnexpectedResponseController(FakeController):
@@ -68,6 +65,22 @@ class UnexpectedResponseController(FakeController):
         if data.startswith(b"{") and b'"crc32"' not in data:
             self.responses.append(b"unexpected\n")
         return result
+
+
+class SilentAfterPoseController(FakeController):
+    def read_frame(self) -> bytes:
+        if not self.responses:
+            return b""
+        return self.responses.pop(0)
+
+
+class AdvancingClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        self.now += 0.1
+        return self.now
 
 
 def telemetry(sequence: int, mode: str, reason: str, armed: bool) -> bytes:
@@ -92,7 +105,6 @@ def test_gate_one_proves_protocol_recovery_and_timeout() -> None:
     report = run_gate_one(
         controller,
         generate_malformed_frames(100),
-        sleep_fn=controller.heartbeat_timeout,
     )
 
     assert report.passed
@@ -100,6 +112,7 @@ def test_gate_one_proves_protocol_recovery_and_timeout() -> None:
     assert report.malformed_frames_sent == 100
     assert report.unexpected_malformed_responses == 0
     assert report.heartbeat_sequence == 4
+    assert report.heartbeat_elapsed_ms >= 0
     assert report.final_sequence == 5
 
 
@@ -110,10 +123,23 @@ def test_gate_one_fails_on_malformed_input_response() -> None:
         run_gate_one(
             controller,
             generate_malformed_frames(1),
-            sleep_fn=controller.heartbeat_timeout,
         )
 
 
 def test_gate_one_rejects_short_heartbeat_wait() -> None:
     with pytest.raises(ValueError, match="500 ms"):
-        run_gate_one(FakeController(), [], heartbeat_wait_s=0.49)
+        run_gate_one(FakeController(), [], heartbeat_deadline_s=0.49)
+
+
+def test_gate_one_fails_closed_when_heartbeat_detach_is_missing() -> None:
+    controller = SilentAfterPoseController()
+
+    with pytest.raises(SerialTransportError, match="heartbeat detach"):
+        run_gate_one(
+            controller,
+            [],
+            heartbeat_deadline_s=0.5,
+            monotonic_fn=AdvancingClock(),
+        )
+
+    assert controller.armed is False

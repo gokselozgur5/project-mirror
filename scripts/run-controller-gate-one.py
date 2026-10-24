@@ -25,7 +25,7 @@ def main() -> int:
     if not args.confirm_servos_disconnected:
         parser.error("refusing to run without --confirm-servos-disconnected")
 
-    device = SerialDevice(args.port)
+    device = SerialDevice(args.port, timeout_s=0.05)
     try:
         report = run_gate_one(device, generate_malformed_frames(args.count))
     except SerialTransportError as error:
