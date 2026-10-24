@@ -52,6 +52,10 @@ def percentile(values: list[float], percentile_value: float) -> float:
     return ordered[max(0, index)]
 
 
+def median(values: list[float]) -> float:
+    return statistics.median(values) if values else 0.0
+
+
 async def run(args: argparse.Namespace) -> SoakReport:
     request_latencies: list[float] = []
     state_ages: list[float] = []
@@ -199,10 +203,10 @@ async def run(args: argparse.Namespace) -> SoakReport:
         stream_samples=stream_samples,
         failures=failures,
         sequence_lag_max=sequence_lag_max,
-        request_latency_ms_p50=statistics.median(request_latencies),
+        request_latency_ms_p50=median(request_latencies),
         request_latency_ms_p95=percentile(request_latencies, 0.95),
         request_latency_ms_max=max(request_latencies, default=0.0),
-        state_age_ms_p50=statistics.median(state_ages),
+        state_age_ms_p50=median(state_ages),
         state_age_ms_p95=percentile(state_ages, 0.95),
         state_age_ms_max=max(state_ages, default=0.0),
         gateway_rss_start_bytes=rss_start,

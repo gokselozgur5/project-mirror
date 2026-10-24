@@ -10,6 +10,7 @@ bootstrap:
 	npm ci
 
 test:
+	$(VENV)/bin/pytest -q tests
 	$(VENV)/bin/pytest -q services/embodiment
 	$(VENV)/bin/pytest -q services/runtime
 	$(VENV)/bin/pytest -q services/perception

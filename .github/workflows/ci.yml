@@ -30,6 +30,7 @@ jobs:
       - run: uv sync --locked --all-packages --all-extras
       - run: uv run ruff check services/embodiment
       - run: uv run mypy services/embodiment/src
+      - run: uv run pytest -q tests
       - run: uv run pytest -q services/embodiment
       - run: uv run ruff check services/runtime scripts
       - run: uv run mypy services/runtime/src
