@@ -30,7 +30,7 @@ fields, invalid JSON, or non-finite values are rejected. No valid command for
 
 ## Build
 
-Install PlatformIO, then run:
+Install PlatformIO Core 6.2.0, then run:
 
 ```bash
 pio run -d firmware/head-controller
