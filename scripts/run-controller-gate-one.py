@@ -5,7 +5,8 @@ import sys
 
 from project_mirror_embodiment.controller_bench import run_gate_one
 from project_mirror_embodiment.protocol_corpus import generate_malformed_frames
-from project_mirror_embodiment.serial_device import SerialDevice
+from project_mirror_embodiment.serial_device import SerialDevice, SerialDeviceError
+from project_mirror_embodiment.serial_protocol import SerialProtocolError
 from project_mirror_embodiment.serial_transport import SerialTransportError
 
 
@@ -28,11 +29,17 @@ def main() -> int:
 
     if not args.confirm_servos_disconnected:
         parser.error("refusing to run without --confirm-servos-disconnected")
+    if args.count < 1:
+        parser.error("--count must be positive")
 
-    device = SerialDevice(args.port, timeout_s=0.05)
+    try:
+        device = SerialDevice(args.port, timeout_s=0.05)
+    except SerialDeviceError as error:
+        print(json.dumps({"passed": False, "error": str(error)}), file=sys.stderr)
+        return 1
     try:
         report = run_gate_one(device, generate_malformed_frames(args.count))
-    except SerialTransportError as error:
+    except (SerialProtocolError, SerialTransportError) as error:
         print(json.dumps({"passed": False, "error": str(error)}), file=sys.stderr)
         return 1
     finally:
