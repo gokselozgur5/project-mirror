@@ -5,7 +5,9 @@ import pytest
 from project_mirror_embodiment.models import EmbodimentState, MotionMode
 from project_mirror_embodiment.serial_protocol import (
     SerialProtocolError,
+    decode_control_command,
     decode_pose_command,
+    encode_control_command,
     encode_pose_command,
 )
 
@@ -76,3 +78,21 @@ def test_encoder_refuses_unbounded_state() -> None:
 
     with pytest.raises(ValueError):
         encode_pose_command(state(yaw=55.001))
+
+
+@pytest.mark.parametrize("operation", ["stop", "arm"])
+def test_control_command_round_trip(operation: str) -> None:
+    assert operation in ("stop", "arm")
+    frame = encode_control_command(operation, 43)  # type: ignore[arg-type]
+
+    command = decode_control_command(frame)
+
+    assert command.op == operation
+    assert command.seq == 43
+
+
+def test_control_command_tampering_is_rejected() -> None:
+    frame = encode_control_command("stop", 43).replace(b'"stop"', b'"arm"')
+
+    with pytest.raises(SerialProtocolError, match="crc32 mismatch"):
+        decode_control_command(frame)

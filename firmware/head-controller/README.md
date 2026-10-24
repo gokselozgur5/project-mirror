@@ -24,9 +24,17 @@ Controller telemetry:
 {"v":1,"seq":42,"yaw_mdeg":12500,"pitch_mdeg":-4000,"armed":true}
 ```
 
+Explicit control command:
+
+```json
+{"v":1,"seq":43,"op":"stop","crc32":"79595F22"}
+```
+
 Messages are newline terminated and limited to 160 bytes. Angles are integer
 millidegrees. The uppercase CRC-32 covers the canonical ASCII payload
 `v,seq,yaw_mdeg,pitch_mdeg`; see ADR 0005 for the complete wire contract.
+Control frames use the payload `v,op,seq`. Stop latches and detaches both
+servos; arm clears the latch without attaching or moving them.
 Commands with a stale sequence, unknown fields, invalid JSON, invalid checksum,
 or out-of-range values are rejected. An oversized frame is discarded in full
 until its next newline. No valid command for 500 ms detaches the servos.
