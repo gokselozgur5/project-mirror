@@ -21,6 +21,7 @@ from project_mirror_embodiment.serial_protocol import (
 from project_mirror_embodiment.serial_transport import HeadControllerTransport
 
 client = TestClient(app)
+PHYSICAL_TOKEN = "test-control-token-with-32-characters"
 
 
 class MemoryStream:
@@ -114,7 +115,7 @@ def test_health() -> None:
 def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
     device = ClosableMemoryStream()
     monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
-    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "test-control-token")
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", PHYSICAL_TOKEN)
     monkeypatch.setattr(
         "project_mirror_embodiment.app.SerialDevice",
         lambda port: device,
@@ -142,12 +143,20 @@ def test_serial_mode_refuses_to_start_without_control_token(
         pass
 
 
+def test_serial_mode_refuses_short_control_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "too-short")
+
+    with pytest.raises(RuntimeError, match="at least 32"), TestClient(app):
+        pass
+
+
 def test_serial_mode_closes_device_after_invalid_handshake(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     device = InvalidHandshakeStream()
     monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
-    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "test-control-token")
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", PHYSICAL_TOKEN)
     monkeypatch.setattr(
         "project_mirror_embodiment.app.SerialDevice",
         lambda port: device,
@@ -164,7 +173,7 @@ def test_serial_mode_rejects_wrong_startup_stop_transition(
 ) -> None:
     device = WrongStartupStopStream()
     monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
-    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "test-control-token")
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", PHYSICAL_TOKEN)
     monkeypatch.setattr(
         "project_mirror_embodiment.app.SerialDevice",
         lambda port: device,
