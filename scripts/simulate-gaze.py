@@ -14,7 +14,7 @@ def main() -> None:
     parser.add_argument("--hz", type=float, default=10.0)
     args = parser.parse_args()
 
-    sequence = int(time.time() * 1_000)
+    sequence = int(time.time())
     started = time.monotonic()
     interval = 1.0 / args.hz
 

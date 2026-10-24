@@ -10,6 +10,7 @@ describe("gateway state validation", () => {
   it.each([
     { ...initialState, version: 2 },
     { ...initialState, sequence: 0.5 },
+    { ...initialState, sequence: 4_294_967_296 },
     { ...initialState, yaw_deg: Number.NaN },
     { ...initialState, yaw_deg: 55.1 },
     { ...initialState, pitch_deg: -25.1 },

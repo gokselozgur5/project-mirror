@@ -26,6 +26,8 @@ export function isEmbodimentState(value: unknown): value is EmbodimentState {
   return (
     candidate.version === 1 &&
     Number.isSafeInteger(candidate.sequence) &&
+    Number(candidate.sequence) >= 0 &&
+    Number(candidate.sequence) <= 4_294_967_295 &&
     typeof candidate.updated_at_ms === "number" &&
     Number.isFinite(candidate.updated_at_ms) &&
     typeof candidate.yaw_deg === "number" &&

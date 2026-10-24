@@ -13,14 +13,14 @@ class FaceObservation(StrictModel):
 
 class Observation(StrictModel):
     version: int = Field(1, ge=1, le=1)
-    sequence: int = Field(ge=0)
+    sequence: int = Field(ge=0, le=4_294_967_295)
     observed_at_ms: int = Field(ge=0)
     face: FaceObservation | None
 
 
 class PoseIntent(StrictModel):
     version: int = 1
-    sequence: int = Field(ge=0)
+    sequence: int = Field(ge=0, le=4_294_967_295)
     issued_at_ms: int = Field(ge=0)
     ttl_ms: int = Field(ge=50, le=2_000)
     yaw_deg: float

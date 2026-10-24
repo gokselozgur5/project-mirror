@@ -7,7 +7,7 @@
   "required": ["version", "sequence", "issued_at_ms", "ttl_ms", "yaw_deg", "pitch_deg"],
   "properties": {
     "version": { "const": 1 },
-    "sequence": { "type": "integer", "minimum": 0 },
+    "sequence": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
     "issued_at_ms": { "type": "integer", "minimum": 0 },
     "ttl_ms": { "type": "integer", "minimum": 50, "maximum": 2000 },
     "yaw_deg": { "type": "number", "minimum": -180, "maximum": 180 },
