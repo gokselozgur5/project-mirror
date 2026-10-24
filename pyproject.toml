@@ -10,6 +10,9 @@ package = false
 dev = [
   "setuptools>=84.1.0"
 ]
+audit = [
+  "pip-audit==2.10.1"
+]
 
 [tool.uv.workspace]
 members = [
