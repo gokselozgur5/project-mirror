@@ -1,51 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
-type MotionMode = "tracking" | "neutral" | "stopped";
-
-type EmbodimentState = {
-  version: 1;
-  sequence: number;
-  updated_at_ms: number;
-  yaw_deg: number;
-  pitch_deg: number;
-  mode: MotionMode;
-  reason: string | null;
-};
+import { controlHeaders, initialState, isEmbodimentState } from "./gateway";
 
 const gatewayHttp = import.meta.env.VITE_GATEWAY_HTTP ?? "http://127.0.0.1:8080";
 const gatewayWs = import.meta.env.VITE_GATEWAY_WS ?? "ws://127.0.0.1:8080/v1/stream";
 
 function unixMilliseconds() {
   return Date.now();
-}
-
-const initialState: EmbodimentState = {
-  version: 1,
-  sequence: 0,
-  updated_at_ms: 0,
-  yaw_deg: 0,
-  pitch_deg: 0,
-  mode: "neutral",
-  reason: "not_connected",
-};
-
-function isEmbodimentState(value: unknown): value is EmbodimentState {
-  if (typeof value !== "object" || value === null) return false;
-  const candidate = value as Record<string, unknown>;
-  return (
-    candidate.version === 1 &&
-    Number.isSafeInteger(candidate.sequence) &&
-    typeof candidate.updated_at_ms === "number" &&
-    Number.isFinite(candidate.updated_at_ms) &&
-    typeof candidate.yaw_deg === "number" &&
-    Number.isFinite(candidate.yaw_deg) &&
-    typeof candidate.pitch_deg === "number" &&
-    Number.isFinite(candidate.pitch_deg) &&
-    (candidate.mode === "tracking" ||
-      candidate.mode === "neutral" ||
-      candidate.mode === "stopped") &&
-    (typeof candidate.reason === "string" || candidate.reason === null)
-  );
 }
 
 export function App() {
@@ -81,7 +42,7 @@ export function App() {
     sequence.current = Math.max(sequence.current + 1, state.sequence + 1);
     await sendCommand("pose", `${gatewayHttp}/v1/pose`, {
       method: "POST",
-      headers: controlHeaders(true),
+      headers: controlHeaders(controlToken, true),
       body: JSON.stringify({
         version: 1,
         sequence: sequence.current,
@@ -100,15 +61,8 @@ export function App() {
   const arm = async () => {
     await sendCommand("arm", `${gatewayHttp}/v1/arm`, {
       method: "POST",
-      headers: controlHeaders(false),
+      headers: controlHeaders(controlToken, false),
     });
-  };
-
-  const controlHeaders = (includeContentType: boolean) => {
-    const headers: Record<string, string> = {};
-    if (includeContentType) headers["content-type"] = "application/json";
-    if (controlToken) headers.authorization = `Bearer ${controlToken}`;
-    return headers;
   };
 
   const sendCommand = async (name: string, url: string, init: RequestInit) => {

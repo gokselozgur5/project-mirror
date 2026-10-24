@@ -9,6 +9,7 @@
     "build": "npm run build --workspace @project-mirror/operator-web",
     "dev:web": "npm run dev --workspace @project-mirror/operator-web",
     "lint": "npm run lint --workspace @project-mirror/operator-web",
+    "test:web": "npm run test --workspace @project-mirror/operator-web",
     "typecheck": "npm run typecheck --workspace @project-mirror/operator-web"
   },
   "engines": {
