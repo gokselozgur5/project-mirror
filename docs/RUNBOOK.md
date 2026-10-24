@@ -25,7 +25,11 @@ make firmware
 
 ## Start the stack
 
-Open three terminals at the repository root.
+For the default simulation, `make dev` starts all services and the operator in
+one foreground process. It writes only ignored local logs beneath `runtime/`
+and stops the children on `Ctrl-C`.
+
+Alternatively, open four terminals at the repository root.
 
 Terminal 1 — bounded embodiment gateway:
 
