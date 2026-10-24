@@ -18,5 +18,9 @@ class SerialDevice:
             return 0
         return written
 
+    def read_frame(self) -> bytes:
+        frame: bytes = self._port.read_until(expected=b"\n", size=200)
+        return frame
+
     def close(self) -> None:
         self._port.close()

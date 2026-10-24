@@ -22,6 +22,13 @@ class MotionMode(StrEnum):
     STOPPED = "stopped"
 
 
+class ControllerLinkState(StrEnum):
+    SIMULATED = "simulated"
+    AWAITING_TELEMETRY = "awaiting_telemetry"
+    ONLINE = "online"
+    INVALID_TELEMETRY = "invalid_telemetry"
+
+
 class EmbodimentState(StrictModel):
     version: int = 1
     sequence: int = Field(ge=0)
@@ -46,3 +53,12 @@ class GatewayMetrics(StrictModel):
     stop_count: int = Field(ge=0)
     last_sequence: int = Field(ge=0)
     last_source_age_ms: int | None = Field(default=None, ge=0)
+
+
+class ControllerStatus(StrictModel):
+    configured: bool
+    link_state: ControllerLinkState
+    last_sequence: int | None = Field(default=None, ge=0)
+    last_mode: MotionMode | None = None
+    last_reason: str | None = None
+    invalid_frames: int = Field(default=0, ge=0)

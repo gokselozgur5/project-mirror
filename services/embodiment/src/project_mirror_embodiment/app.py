@@ -1,28 +1,90 @@
 import asyncio
 import os
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from .gateway import CommandRejected, EmbodimentGateway
-from .models import EmbodimentState, GatewayMetrics, Health, PoseTarget
+from .models import (
+    ControllerLinkState,
+    ControllerStatus,
+    EmbodimentState,
+    GatewayMetrics,
+    Health,
+    MotionMode,
+    PoseTarget,
+)
 from .serial_device import SerialDevice
+from .serial_protocol import SerialProtocolError
 from .serial_transport import HeadControllerTransport, SerialTransportError
+
+
+async def read_controller_telemetry(
+    application: FastAPI,
+    device: SerialDevice,
+    transport: HeadControllerTransport,
+) -> None:
+    while True:
+        frame = await asyncio.to_thread(device.read_frame)
+        if not frame:
+            continue
+        accept_controller_telemetry(application, transport, frame)
+
+
+def accept_controller_telemetry(
+    application: FastAPI,
+    transport: HeadControllerTransport,
+    frame: bytes,
+) -> None:
+    previous: ControllerStatus = application.state.controller_status
+    try:
+        telemetry = transport.accept_telemetry(frame)
+    except (SerialProtocolError, SerialTransportError):
+        application.state.controller_status = previous.model_copy(
+            update={
+                "link_state": ControllerLinkState.INVALID_TELEMETRY,
+                "invalid_frames": previous.invalid_frames + 1,
+            }
+        )
+        return
+    application.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+        last_sequence=telemetry.seq,
+        last_mode=MotionMode(telemetry.mode),
+        last_reason=telemetry.reason,
+        invalid_frames=previous.invalid_frames,
+    )
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     device: SerialDevice | None = None
+    reader_task: asyncio.Task[None] | None = None
     port = os.getenv("MIRROR_SERIAL_PORT")
     if port:
         device = SerialDevice(port)
-        application.state.controller = HeadControllerTransport(device)
+        transport = HeadControllerTransport(device)
+        application.state.controller = transport
+        application.state.controller_status = ControllerStatus(
+            configured=True,
+            link_state=ControllerLinkState.AWAITING_TELEMETRY,
+        )
+        reader_task = asyncio.create_task(read_controller_telemetry(application, device, transport))
     try:
         yield
     finally:
+        if reader_task is not None:
+            reader_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await reader_task
         application.state.controller = None
+        application.state.controller_status = ControllerStatus(
+            configured=False,
+            link_state=ControllerLinkState.SIMULATED,
+        )
         if device is not None:
             device.close()
 
@@ -37,6 +99,10 @@ app.add_middleware(
 )
 gateway = EmbodimentGateway()
 app.state.controller = None
+app.state.controller_status = ControllerStatus(
+    configured=False,
+    link_state=ControllerLinkState.SIMULATED,
+)
 
 
 def controller() -> HeadControllerTransport | None:
@@ -69,6 +135,12 @@ def get_state() -> EmbodimentState:
 @app.get("/v1/metrics", response_model=GatewayMetrics)
 def get_metrics() -> GatewayMetrics:
     return gateway.metrics()
+
+
+@app.get("/v1/controller", response_model=ControllerStatus)
+def get_controller_status() -> ControllerStatus:
+    current: ControllerStatus = app.state.controller_status
+    return current
 
 
 @app.post("/v1/pose", response_model=EmbodimentState)

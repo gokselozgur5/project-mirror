@@ -42,3 +42,6 @@ MIRROR_SERIAL_PORT=/dev/cu.usbmodem-controller \
 
 The default is simulation and opens no device. A configured port that cannot be
 opened fails service startup instead of silently falling back to simulation.
+Validated controller telemetry is exposed at `/v1/controller`; corrupt,
+unpublished-future, and backwards sequence frames are counted and never
+reported as an online controller state.

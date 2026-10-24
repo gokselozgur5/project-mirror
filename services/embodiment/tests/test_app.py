@@ -1,9 +1,10 @@
-from time import time_ns
+from time import sleep, time_ns
 
 import pytest
 from fastapi.testclient import TestClient
 
-from project_mirror_embodiment.app import app, gateway
+from project_mirror_embodiment.app import accept_controller_telemetry, app, gateway
+from project_mirror_embodiment.models import ControllerLinkState, ControllerStatus
 from project_mirror_embodiment.serial_protocol import (
     decode_control_command,
     decode_pose_command,
@@ -35,6 +36,10 @@ class ClosableMemoryStream(MemoryStream):
     def close(self) -> None:
         self.closed = True
 
+    def read_frame(self) -> bytes:
+        sleep(0.01)
+        return b""
+
 
 def test_health() -> None:
     response = client.get("/health")
@@ -42,6 +47,7 @@ def test_health() -> None:
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
     assert response.json()["controller"] == "simulated"
+    assert client.get("/v1/controller").json()["link_state"] == "simulated"
 
 
 def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -159,3 +165,30 @@ def test_controller_write_failure_latches_gateway_stop() -> None:
     assert gateway.state().mode == "stopped"
     assert gateway.state().reason == "controller_write_failure"
     client.post("/v1/arm")
+
+
+def test_controller_telemetry_updates_link_status_and_counts_invalid_frames() -> None:
+    stream = MemoryStream()
+    transport = HeadControllerTransport(stream)
+    transport.publish_pose(gateway.state().model_copy(update={"sequence": 1}))
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.AWAITING_TELEMETRY,
+    )
+    frame = (
+        b'{"v":1,"seq":1,"yaw_mdeg":12500,"pitch_mdeg":-4000,'
+        b'"mode":"tracking","reason":"pose","armed":true,"crc32":"FDF9E1F0"}\n'
+    )
+
+    accept_controller_telemetry(app, transport, frame)
+    assert app.state.controller_status.link_state == "online"
+    assert app.state.controller_status.last_sequence == 1
+
+    accept_controller_telemetry(app, transport, b"damaged\n")
+    assert app.state.controller_status.link_state == "invalid_telemetry"
+    assert app.state.controller_status.invalid_frames == 1
+
+    app.state.controller_status = ControllerStatus(
+        configured=False,
+        link_state=ControllerLinkState.SIMULATED,
+    )

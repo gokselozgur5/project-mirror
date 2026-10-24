@@ -61,11 +61,14 @@ curl --fail http://127.0.0.1:8080/health
 curl --fail http://127.0.0.1:8081/health
 curl --fail http://127.0.0.1:8080/v1/state
 curl --fail http://127.0.0.1:8080/v1/metrics
+curl --fail http://127.0.0.1:8080/v1/controller
 ```
 
 Gateway health reports `controller: simulated` unless an explicit serial device
 was opened successfully. Failure to open a requested device aborts startup; it
 does not silently fall back to simulation.
+The controller endpoint distinguishes `awaiting_telemetry`, `online`, and
+`invalid_telemetry`, and preserves the last validated sequence and transition.
 
 The operator view shows the current mode, target and applied pose, receipt age,
 sequence, and last transition reason. A stale publisher must cause the applied
