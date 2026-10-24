@@ -68,6 +68,14 @@ class InvalidHandshakeStream(ClosableMemoryStream):
         return b"damaged\n"
 
 
+class WrongStartupStopStream(ClosableMemoryStream):
+    def read_frame(self) -> bytes:
+        if not self.handshake_sent:
+            self.handshake_sent = True
+            return telemetry_frame(0, 0, 0, "stopped", "startup", False)
+        return telemetry_frame(1, 0, 0, "stopped", "startup", False)
+
+
 def telemetry_frame(
     sequence: int,
     yaw_mdeg: int,
@@ -145,6 +153,23 @@ def test_serial_mode_closes_device_after_invalid_handshake(
     )
 
     with pytest.raises(RuntimeError, match="invalid status handshake"), TestClient(app):
+        pass
+
+    assert device.closed is True
+
+
+def test_serial_mode_rejects_wrong_startup_stop_transition(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    device = WrongStartupStopStream()
+    monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "test-control-token")
+    monkeypatch.setattr(
+        "project_mirror_embodiment.app.SerialDevice",
+        lambda port: device,
+    )
+
+    with pytest.raises(RuntimeError, match="stopped startup state"), TestClient(app):
         pass
 
     assert device.closed is True
