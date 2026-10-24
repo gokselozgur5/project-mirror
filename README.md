@@ -75,7 +75,11 @@ CI's baseline runtimes.
 ```bash
 make bootstrap
 make check
+make audit
 ```
+
+`make audit` checks the locked Python and npm dependency graphs against their
+current vulnerability advisories; the same audit also runs on a weekly schedule.
 
 Start the gateway, runtime, optional derived-perception adapter, and web
 operator in separate terminals:

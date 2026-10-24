@@ -3,7 +3,7 @@ SHELL := /bin/bash
 UV ?= uv
 VENV := .venv
 
-.PHONY: bootstrap check test lint typecheck build firmware protocol-corpus dev run-gateway run-runtime run-perception run-web simulate phase1-soak privacy-check
+.PHONY: bootstrap check test lint typecheck build audit firmware protocol-corpus dev run-gateway run-runtime run-perception run-web simulate phase1-soak privacy-check
 
 bootstrap:
 	$(UV) sync --locked --all-packages --all-extras
@@ -30,6 +30,10 @@ typecheck:
 
 build:
 	npm run build
+
+audit:
+	$(UV) run --group audit pip-audit
+	npm audit
 
 firmware:
 	$(UV) run platformio test -d firmware/head-controller -e native
