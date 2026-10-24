@@ -85,6 +85,8 @@ The controller endpoint distinguishes `awaiting_telemetry`, `online`, `stale`,
 and `invalid_telemetry`, and preserves the last validated sequence and
 transition. Gateway health reports `degraded` when an explicitly configured
 controller has not produced recent valid telemetry.
+Invalid or stale telemetry also latches the gateway stopped and sends a
+controller stop. Diagnose the link before using Arm again.
 
 The operator view shows the current mode, target and applied pose, receipt age,
 sequence, and last transition reason. A stale publisher must cause the applied
