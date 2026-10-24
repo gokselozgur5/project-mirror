@@ -55,9 +55,40 @@ See [the roadmap](docs/ROADMAP.md) for measurable exit conditions.
 
 ## Current status
 
-The repository begins with architecture and contracts. The first implementation
-target is a hardware-free simulator so control semantics can be tested before a
-servo is powered.
+Phase 1 is implemented as a hardware-free vertical slice. Synthetic face
+observations pass through the character runtime, bounded embodiment gateway,
+and the browser operator view. The gateway exposes latency and safety telemetry,
+rejects stale or out-of-order commands, limits velocity and acceleration, and
+returns to neutral when its heartbeat expires. The ESP32 controller scaffold
+compiles, but physical safety has not yet been bench-tested.
+
+## Quick start
+
+Prerequisites are Python 3.11 or newer, Node.js 22 or newer, and `curl`.
+
+```bash
+make bootstrap
+make check
+```
+
+Start the gateway, runtime, and web operator in separate terminals:
+
+```bash
+make run-gateway
+MIRROR_GATEWAY_URL=http://127.0.0.1:8080 \
+  .venv/bin/uvicorn project_mirror_runtime.app:app --reload --port 8081
+npm run dev:web
+```
+
+Run the automated five-minute Phase 1 acceptance test with:
+
+```bash
+make phase1-soak
+```
+
+See [the operator runbook](docs/RUNBOOK.md) for health checks, stop and recovery
+behavior, telemetry, and troubleshooting. The latest measured Phase 1 result is
+recorded in [the simulation evidence](docs/evidence/phase1-simulation.md).
 
 ## Safety boundary
 

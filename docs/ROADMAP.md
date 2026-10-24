@@ -13,6 +13,9 @@ Exit: clean checkout passes all repository checks without hardware.
 
 ## Phase 1 — simulated gaze
 
+Status: accepted in simulation. See the
+[measured evidence](evidence/phase1-simulation.md).
+
 - Synthetic face-direction source.
 - Character runtime session state.
 - Bounded embodiment gateway.
