@@ -114,8 +114,10 @@ make phase1-soak
 
 See [the operator runbook](docs/RUNBOOK.md) for health checks, stop and recovery
 behavior, telemetry, and troubleshooting. The latest measured Phase 1 result is
-recorded in [the simulation evidence](docs/evidence/phase1-simulation.md). Start
-future development sessions with [the current status](docs/STATUS.md).
+recorded in [the simulation evidence](docs/evidence/phase1-simulation.md), and
+the hardware-free controller work is recorded in
+[the Phase 2 software evidence](docs/evidence/phase2-software.md). Start future
+development sessions with [the current status](docs/STATUS.md).
 Physical work must follow [the gated bench plan](docs/BENCH_PLAN.md).
 The controller-only Gate 1 protocol sequence is automated by
 `scripts/run-controller-gate-one.py`; its mandatory confirmation flag is not
