@@ -28,4 +28,15 @@ if [[ -n "$credential_history" ]]; then
   exit 1
 fi
 
+large_history_objects=$(
+  git rev-list --objects --all |
+    git cat-file --batch-check='%(objecttype) %(objectsize) %(rest)' |
+    awk '$1 == "blob" && $2 > 10485760 { print $3 }'
+)
+if [[ -n "$large_history_objects" ]]; then
+  echo "ERROR: blob larger than 10 MiB detected in Git history" >&2
+  printf '%s\n' "$large_history_objects" >&2
+  exit 1
+fi
+
 echo "repository privacy checks passed"
