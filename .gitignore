@@ -14,10 +14,10 @@ coverage/
 vite.config.js
 vite.config.d.ts
 .pio/
-artifacts/
-runtime/
-models/
-recordings/
+/artifacts/
+/runtime/
+/models/
+/recordings/
 *.mp4
 *.mov
 *.wav
