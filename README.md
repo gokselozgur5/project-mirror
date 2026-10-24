@@ -1,5 +1,8 @@
 # Project Mirror
 
+[![CI](https://github.com/gokselozgur5/project-mirror/actions/workflows/ci.yml/badge.svg)](https://github.com/gokselozgur5/project-mirror/actions/workflows/ci.yml)
+[![Dependency audit](https://github.com/gokselozgur5/project-mirror/actions/workflows/security.yml/badge.svg)](https://github.com/gokselozgur5/project-mirror/actions/workflows/security.yml)
+
 Project Mirror is an open, local-first embodied character platform. One
 character can inhabit a browser avatar and a small pan-tilt desktop robot while
 sharing perception, conversation state, memory, and behavior.
@@ -34,9 +37,9 @@ camera / microphone
 ## Repository map
 
 ```text
-apps/avatar-web/          Browser avatar and operator console
+apps/operator-web/        Browser avatar and operator console
 services/runtime/         Character state and orchestration
-services/perception/      Camera, voice activity, and tracking adapters
+services/perception/      Derived face-box selection and tracking adapter
 services/embodiment/      Safe motion gateway for simulated and physical heads
 firmware/head-controller/ ESP32 servo controller
 packages/contracts/       Versioned cross-process messages
@@ -55,12 +58,13 @@ See [the roadmap](docs/ROADMAP.md) for measurable exit conditions.
 
 ## Current status
 
-Phase 1 is implemented as a hardware-free vertical slice. Synthetic face
-observations pass through the character runtime, bounded embodiment gateway,
-and the browser operator view. The gateway exposes latency and safety telemetry,
-rejects stale or out-of-order commands, limits velocity and acceleration, and
-returns to neutral when its heartbeat expires. The ESP32 controller scaffold
-compiles, but physical safety has not yet been bench-tested.
+Phase 1 is accepted as a hardware-free vertical slice. Synthetic face boxes
+pass through the perception adapter, character runtime, bounded embodiment
+gateway, and browser operator view. Phase 2's host and ESP32-S3 protocol path is
+implemented and fake-tested, including CRC32 frames, reconnect synchronization,
+controller telemetry, startup stop, arm acknowledgement, heartbeat detach, and
+fail-closed link handling. Firmware compiles, but none of this has been proven
+on a physical board or servo.
 
 ## Quick start
 
@@ -107,6 +111,9 @@ behavior, telemetry, and troubleshooting. The latest measured Phase 1 result is
 recorded in [the simulation evidence](docs/evidence/phase1-simulation.md). Start
 future development sessions with [the current status](docs/STATUS.md).
 Physical work must follow [the gated bench plan](docs/BENCH_PLAN.md).
+The controller-only Gate 1 protocol sequence is automated by
+`scripts/run-controller-gate-one.py`; its mandatory confirmation flag is not
+permission to connect a servo.
 
 ## Safety boundary
 
