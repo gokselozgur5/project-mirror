@@ -57,6 +57,8 @@ velocity and acceleration limits, stale-command rejection, heartbeat timeout,
 and emergency neutral behavior. Model output never bypasses it.
 An operator stop is latched: subsequent pose commands are rejected until a
 separate explicit arm action returns the gateway to neutral.
+Physical startup performs a status handshake, immediately confirms a latched
+stop, resumes above the controller's sequence, and still requires explicit arm.
 
 ### Browser avatar
 

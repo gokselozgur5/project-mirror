@@ -26,8 +26,8 @@ int32_t lastYawMilliDegrees = 0;
 int32_t lastPitchMilliDegrees = 0;
 bool armed = false;
 bool discardingFrame = false;
-bool stopLatched = false;
-const char *lastMode = "neutral";
+bool stopLatched = true;
+const char *lastMode = "stopped";
 const char *lastReason = "startup";
 
 float clampValue(float value, float lower, float upper) {

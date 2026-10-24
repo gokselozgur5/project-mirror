@@ -47,8 +47,14 @@ class ClosableMemoryStream(MemoryStream):
             self.handshake_sent = True
             return (
                 b'{"v":1,"seq":0,"yaw_mdeg":0,"pitch_mdeg":0,'
-                b'"mode":"neutral","reason":"startup","armed":false,'
-                b'"crc32":"5799F42D"}\n'
+                b'"mode":"stopped","reason":"startup","armed":false,'
+                b'"crc32":"F961637E"}\n'
+            )
+        if len(self.frames) == 2:
+            return (
+                b'{"v":1,"seq":1,"yaw_mdeg":0,"pitch_mdeg":0,'
+                b'"mode":"stopped","reason":"operator_stop","armed":false,'
+                b'"crc32":"0B82AC3C"}\n'
             )
         sleep(0.01)
         return b""
@@ -79,11 +85,14 @@ def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.Monk
 
     with TestClient(app) as configured_client:
         assert configured_client.get("/health").json()["controller"] == "serial"
-        assert configured_client.get("/v1/controller").json()["last_sequence"] == 0
+        assert configured_client.get("/v1/controller").json()["last_sequence"] == 1
+        assert configured_client.get("/v1/state").json()["mode"] == "stopped"
 
     assert decode_control_command(device.frames[0]).op == "status"
+    assert decode_control_command(device.frames[1]).op == "stop"
     assert device.closed is True
     assert app.state.controller is None
+    gateway.arm()
 
 
 def test_serial_mode_refuses_to_start_without_control_token(

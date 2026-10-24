@@ -24,7 +24,7 @@ void testTimeoutTelemetryGoldenVector() {
 }
 
 void testStartupTelemetryGoldenVector() {
-  assertCrc("1,telemetry,42,0,0,neutral,startup,0", 0x3917A406U);
+  assertCrc("1,telemetry,42,0,0,stopped,startup,0", 0x97EF3355U);
 }
 }  // namespace
 

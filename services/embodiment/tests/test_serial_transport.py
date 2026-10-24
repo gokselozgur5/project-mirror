@@ -109,7 +109,7 @@ def test_status_handshake_resumes_controller_sequence() -> None:
     transport = HeadControllerTransport(stream)
     telemetry = (
         b'{"v":1,"seq":42,"yaw_mdeg":0,"pitch_mdeg":0,'
-        b'"mode":"neutral","reason":"startup","armed":false,"crc32":"3917A406"}\n'
+        b'"mode":"stopped","reason":"startup","armed":false,"crc32":"97EF3355"}\n'
     )
 
     transport.request_status()

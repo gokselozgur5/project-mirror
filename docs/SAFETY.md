@@ -7,7 +7,8 @@
 3. Motion requires a fresh heartbeat and a calibrated controller.
 4. Loss of communication moves to neutral or removes servo torque.
 5. A physical actuator-power stop remains reachable.
-6. Startup never assumes the previous physical pose.
+6. Startup never assumes the previous physical pose and remains stop-latched
+   until an explicit authenticated arm reaches both host and controller.
 
 ## Privacy defaults
 

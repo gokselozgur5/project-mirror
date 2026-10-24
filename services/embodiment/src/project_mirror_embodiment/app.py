@@ -93,7 +93,18 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
             handshake_frame = device.read_frame()
             if not handshake_frame:
                 raise RuntimeError("head controller did not answer the status handshake")
-            handshake = transport.synchronize(handshake_frame)
+            transport.synchronize(handshake_frame)
+            stop_sequence = transport.publish_control("stop")
+            stop_frame = device.read_frame()
+            if not stop_frame:
+                raise RuntimeError("head controller did not acknowledge startup stop")
+            handshake = transport.accept_telemetry(stop_frame)
+            if (
+                handshake.seq != stop_sequence
+                or handshake.mode != MotionMode.STOPPED
+                or handshake.armed
+            ):
+                raise RuntimeError("head controller did not enter stopped startup state")
         except RuntimeError:
             device.close()
             raise
@@ -109,6 +120,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
             last_reason=handshake.reason,
             last_received_at_ms=time_ns() // 1_000_000,
         )
+        gateway.stop(reason="controller_startup")
         reader_task = asyncio.create_task(read_controller_telemetry(application, device, transport))
     try:
         yield
