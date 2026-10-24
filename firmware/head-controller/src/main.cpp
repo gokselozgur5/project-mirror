@@ -61,14 +61,19 @@ void handleCommand(const String &line) {
   if (deserializeJson(command, line) != DeserializationError::Ok) {
     return;
   }
-  if (command["v"] != 1 || !command["seq"].is<uint32_t>() ||
-      !command["yaw"].is<float>() || !command["pitch"].is<float>()) {
+  const JsonObjectConst object = command.as<JsonObjectConst>();
+  const JsonVariantConst versionValue = object["v"];
+  const JsonVariantConst sequenceValue = object["seq"];
+  const JsonVariantConst yawValue = object["yaw"];
+  const JsonVariantConst pitchValue = object["pitch"];
+  if (object.size() != 4 || !versionValue.is<int>() || versionValue.as<int>() != 1 ||
+      !sequenceValue.is<uint32_t>() || !yawValue.is<float>() || !pitchValue.is<float>()) {
     return;
   }
 
-  const uint32_t sequence = command["seq"];
-  const float requestedYaw = command["yaw"];
-  const float requestedPitch = command["pitch"];
+  const uint32_t sequence = sequenceValue.as<uint32_t>();
+  const float requestedYaw = yawValue.as<float>();
+  const float requestedPitch = pitchValue.as<float>();
   if (sequence <= lastSequence || !std::isfinite(requestedYaw) ||
       !std::isfinite(requestedPitch)) {
     return;
