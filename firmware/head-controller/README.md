@@ -15,18 +15,21 @@ regulator.
 Host command:
 
 ```json
-{"v":1,"seq":42,"yaw":12.5,"pitch":-4.0}
+{"v":1,"seq":42,"yaw_mdeg":12500,"pitch_mdeg":-4000,"crc32":"91F71A45"}
 ```
 
 Controller telemetry:
 
 ```json
-{"v":1,"seq":42,"yaw":12.5,"pitch":-4.0,"armed":true}
+{"v":1,"seq":42,"yaw_mdeg":12500,"pitch_mdeg":-4000,"armed":true}
 ```
 
-Messages are newline terminated. Commands with a stale sequence, unknown
-fields, invalid JSON, or non-finite values are rejected. No valid command for
-500 ms detaches the servos.
+Messages are newline terminated and limited to 160 bytes. Angles are integer
+millidegrees. The uppercase CRC-32 covers the canonical ASCII payload
+`v,seq,yaw_mdeg,pitch_mdeg`; see ADR 0005 for the complete wire contract.
+Commands with a stale sequence, unknown fields, invalid JSON, invalid checksum,
+or out-of-range values are rejected. An oversized frame is discarded in full
+until its next newline. No valid command for 500 ms detaches the servos.
 
 ## Build
 
