@@ -30,6 +30,8 @@ in `docs/evidence/phase1-simulation.md`.
   complete-write enforcement, and in-memory pose/stop/arm tests.
 - Gateway-to-controller dispatch for pose, stop, and arm; incomplete writes
   return an error and latch the host gateway stopped.
+- Deterministic 100-frame malformed protocol corpus for later unpowered-board
+  rejection tests; offline decoders reject every frame.
 - Exact frontend and firmware dependency pins plus public CI.
 
 ## Not implemented or not proven

@@ -52,3 +52,7 @@ pio test -d firmware/head-controller -e native
 
 Pins, pulse ranges, and mechanical limits are placeholders until the exact
 board, servo, and linkage are measured.
+
+`make protocol-corpus` writes 100 deterministic malformed frames for future
+controller-only bench rejection tests. It does not open a serial port or claim
+board-level evidence by itself.
