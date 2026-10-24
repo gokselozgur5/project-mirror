@@ -13,6 +13,7 @@ constexpr float kPitchMaxDeg = 25.0F;
 constexpr uint32_t kHeartbeatTimeoutMs = 500;
 constexpr int kServoMinUs = 700;
 constexpr int kServoMaxUs = 2300;
+constexpr size_t kMaxFrameBytes = 160;
 
 Servo yawServo;
 Servo pitchServo;
@@ -20,6 +21,7 @@ String inputLine;
 uint32_t lastCommandAtMs = 0;
 uint32_t lastSequence = 0;
 bool armed = false;
+bool discardingFrame = false;
 
 float clampValue(float value, float lower, float upper) {
   return std::max(lower, std::min(upper, value));
@@ -45,12 +47,42 @@ void armIfNeeded() {
   armed = true;
 }
 
-void publishTelemetry(float yaw, float pitch) {
+uint32_t crc32(const String &payload) {
+  uint32_t crc = 0xFFFFFFFFU;
+  for (size_t index = 0; index < payload.length(); ++index) {
+    crc ^= static_cast<uint8_t>(payload[index]);
+    for (uint8_t bit = 0; bit < 8; ++bit) {
+      crc = (crc >> 1U) ^ ((crc & 1U) != 0U ? 0xEDB88320U : 0U);
+    }
+  }
+  return ~crc;
+}
+
+bool checksumMatches(uint32_t sequence, int32_t yawMilliDegrees,
+                     int32_t pitchMilliDegrees, const char *provided) {
+  if (provided == nullptr || strlen(provided) != 8) {
+    return false;
+  }
+  for (size_t index = 0; index < 8; ++index) {
+    const char value = provided[index];
+    if (!((value >= '0' && value <= '9') || (value >= 'A' && value <= 'F'))) {
+      return false;
+    }
+  }
+
+  const String payload = "1," + String(sequence) + "," + String(yawMilliDegrees) +
+                         "," + String(pitchMilliDegrees);
+  char expected[9];
+  snprintf(expected, sizeof(expected), "%08lX", static_cast<unsigned long>(crc32(payload)));
+  return strcmp(provided, expected) == 0;
+}
+
+void publishTelemetry(int32_t yawMilliDegrees, int32_t pitchMilliDegrees) {
   JsonDocument response;
   response["v"] = 1;
   response["seq"] = lastSequence;
-  response["yaw"] = yaw;
-  response["pitch"] = pitch;
+  response["yaw_mdeg"] = yawMilliDegrees;
+  response["pitch_mdeg"] = pitchMilliDegrees;
   response["armed"] = armed;
   serializeJson(response, Serial);
   Serial.println();
@@ -64,35 +96,41 @@ void handleCommand(const String &line) {
   const JsonObjectConst object = command.as<JsonObjectConst>();
   const JsonVariantConst versionValue = object["v"];
   const JsonVariantConst sequenceValue = object["seq"];
-  const JsonVariantConst yawValue = object["yaw"];
-  const JsonVariantConst pitchValue = object["pitch"];
-  if (object.size() != 4 || !versionValue.is<int>() || versionValue.as<int>() != 1 ||
-      !sequenceValue.is<uint32_t>() || !yawValue.is<float>() || !pitchValue.is<float>()) {
+  const JsonVariantConst yawValue = object["yaw_mdeg"];
+  const JsonVariantConst pitchValue = object["pitch_mdeg"];
+  const JsonVariantConst checksumValue = object["crc32"];
+  if (object.size() != 5 || !versionValue.is<int>() || versionValue.as<int>() != 1 ||
+      !sequenceValue.is<uint32_t>() || !yawValue.is<int32_t>() ||
+      !pitchValue.is<int32_t>() || !checksumValue.is<const char *>()) {
     return;
   }
 
   const uint32_t sequence = sequenceValue.as<uint32_t>();
-  const float requestedYaw = yawValue.as<float>();
-  const float requestedPitch = pitchValue.as<float>();
-  if (sequence <= lastSequence || !std::isfinite(requestedYaw) ||
-      !std::isfinite(requestedPitch)) {
+  const int32_t yawMilliDegrees = yawValue.as<int32_t>();
+  const int32_t pitchMilliDegrees = pitchValue.as<int32_t>();
+  if (sequence <= lastSequence || yawMilliDegrees < -55000 || yawMilliDegrees > 55000 ||
+      pitchMilliDegrees < -25000 || pitchMilliDegrees > 25000 ||
+      !checksumMatches(sequence, yawMilliDegrees, pitchMilliDegrees,
+                       checksumValue.as<const char *>())) {
     return;
   }
 
-  const float yaw = clampValue(requestedYaw, kYawMinDeg, kYawMaxDeg);
-  const float pitch = clampValue(requestedPitch, kPitchMinDeg, kPitchMaxDeg);
+  const float yaw = clampValue(static_cast<float>(yawMilliDegrees) / 1000.0F, kYawMinDeg,
+                               kYawMaxDeg);
+  const float pitch = clampValue(static_cast<float>(pitchMilliDegrees) / 1000.0F,
+                                 kPitchMinDeg, kPitchMaxDeg);
   armIfNeeded();
   yawServo.write(poseToServo(yaw, kYawMinDeg, kYawMaxDeg));
   pitchServo.write(poseToServo(pitch, kPitchMinDeg, kPitchMaxDeg));
   lastSequence = sequence;
   lastCommandAtMs = millis();
-  publishTelemetry(yaw, pitch);
+  publishTelemetry(yawMilliDegrees, pitchMilliDegrees);
 }
 }  // namespace
 
 void setup() {
   Serial.begin(115200);
-  inputLine.reserve(256);
+  inputLine.reserve(kMaxFrameBytes);
   disarm();
 }
 
@@ -100,12 +138,16 @@ void loop() {
   while (Serial.available() > 0) {
     const char value = static_cast<char>(Serial.read());
     if (value == '\n') {
-      handleCommand(inputLine);
+      if (!discardingFrame && !inputLine.isEmpty()) {
+        handleCommand(inputLine);
+      }
       inputLine = "";
-    } else if (inputLine.length() < 255) {
+      discardingFrame = false;
+    } else if (!discardingFrame && inputLine.length() < kMaxFrameBytes - 1) {
       inputLine += value;
     } else {
       inputLine = "";
+      discardingFrame = true;
     }
   }
 
