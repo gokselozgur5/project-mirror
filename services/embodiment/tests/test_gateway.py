@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from project_mirror_embodiment.gateway import CommandRejected, EmbodimentGateway
+from project_mirror_embodiment.gateway import CommandRejected, EmbodimentGateway, MotionLimits
 from project_mirror_embodiment.models import MotionMode, PoseTarget
 
 
@@ -25,6 +25,24 @@ def target(**overrides: int | float) -> PoseTarget:
     }
     values.update(overrides)
     return PoseTarget.model_validate(values)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"yaw_min_deg": 1.0},
+        {"pitch_max_deg": -1.0},
+        {"yaw_min_deg": 0.0, "yaw_max_deg": 0.0},
+        {"pitch_rate_deg_s": 0.0},
+        {"yaw_acceleration_deg_s2": -1.0},
+        {"max_clock_skew_ms": -1},
+    ],
+)
+def test_rejects_unsafe_motion_limit_configuration(
+    overrides: dict[str, float | int],
+) -> None:
+    with pytest.raises(ValueError):
+        MotionLimits(**overrides)
 
 
 def test_clamps_pose_to_mechanical_limits() -> None:
