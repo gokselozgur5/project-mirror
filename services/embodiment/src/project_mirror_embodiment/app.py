@@ -60,6 +60,7 @@ def accept_controller_telemetry(
         stop_for_controller_fault(transport, reason="invalid_controller_telemetry")
         return
     application.state.controller_status = ControllerStatus(
+        version=1,
         configured=True,
         link_state=ControllerLinkState.ONLINE,
         last_sequence=telemetry.seq,
@@ -136,6 +137,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
             raise RuntimeError("head controller returned an invalid status handshake") from error
         application.state.controller = transport
         application.state.controller_status = ControllerStatus(
+            version=1,
             configured=True,
             link_state=ControllerLinkState.ONLINE,
             last_sequence=handshake.seq,
@@ -155,6 +157,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
                 await reader_task
         application.state.controller = None
         application.state.controller_status = ControllerStatus(
+            version=1,
             configured=False,
             link_state=ControllerLinkState.SIMULATED,
         )
@@ -173,6 +176,7 @@ app.add_middleware(
 gateway = EmbodimentGateway()
 app.state.controller = None
 app.state.controller_status = ControllerStatus(
+    version=1,
     configured=False,
     link_state=ControllerLinkState.SIMULATED,
 )

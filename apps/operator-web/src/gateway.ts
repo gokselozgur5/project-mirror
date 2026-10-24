@@ -11,6 +11,7 @@ export type EmbodimentState = {
 };
 
 export type ControllerStatus = {
+  version: 1;
   configured: boolean;
   link_state: "simulated" | "awaiting_telemetry" | "online" | "invalid_telemetry" | "stale";
   last_sequence: number | null;
@@ -67,6 +68,7 @@ export function isControllerStatus(value: unknown): value is ControllerStatus {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return (
+    candidate.version === 1 &&
     typeof candidate.configured === "boolean" &&
     (candidate.link_state === "simulated" ||
       candidate.link_state === "awaiting_telemetry" ||

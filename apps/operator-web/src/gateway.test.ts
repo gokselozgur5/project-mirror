@@ -42,6 +42,7 @@ describe("controller status validation", () => {
   it("accepts a known physical link state", () => {
     expect(
       isControllerStatus({
+        version: 1,
         configured: true,
         link_state: "online",
         last_sequence: 4,
@@ -57,6 +58,7 @@ describe("controller status validation", () => {
   it("rejects unknown or invalid link state", () => {
     expect(
       isControllerStatus({
+        version: 1,
         configured: true,
         link_state: "probably_online",
         last_sequence: null,
@@ -72,6 +74,7 @@ describe("controller status validation", () => {
   it("rejects an incomplete payload despite a known link state", () => {
     expect(
       isControllerStatus({
+        version: 1,
         configured: true,
         link_state: "online",
         invalid_frames: 0,
