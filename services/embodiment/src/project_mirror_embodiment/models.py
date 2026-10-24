@@ -34,8 +34,8 @@ class EmbodimentState(StrictModel):
     version: int = 1
     sequence: int = Field(ge=0)
     updated_at_ms: int = Field(ge=0)
-    yaw_deg: float
-    pitch_deg: float
+    yaw_deg: float = Field(ge=-55, le=55)
+    pitch_deg: float = Field(ge=-25, le=25)
     mode: MotionMode
     reason: str | None = None
 

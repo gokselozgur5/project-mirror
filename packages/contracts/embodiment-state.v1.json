@@ -9,8 +9,8 @@
     "version": { "const": 1 },
     "sequence": { "type": "integer", "minimum": 0 },
     "updated_at_ms": { "type": "integer", "minimum": 0 },
-    "yaw_deg": { "type": "number" },
-    "pitch_deg": { "type": "number" },
+    "yaw_deg": { "type": "number", "minimum": -55, "maximum": 55 },
+    "pitch_deg": { "type": "number", "minimum": -25, "maximum": 25 },
     "mode": { "enum": ["tracking", "neutral", "stopped"] },
     "reason": { "type": ["string", "null"] }
   }
