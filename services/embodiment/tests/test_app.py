@@ -3,7 +3,12 @@ from time import sleep, time_ns
 import pytest
 from fastapi.testclient import TestClient
 
-from project_mirror_embodiment.app import accept_controller_telemetry, app, gateway
+from project_mirror_embodiment.app import (
+    accept_controller_telemetry,
+    app,
+    gateway,
+    mark_controller_telemetry_stale,
+)
 from project_mirror_embodiment.models import ControllerLinkState, ControllerStatus
 from project_mirror_embodiment.serial_protocol import (
     decode_control_command,
@@ -188,6 +193,24 @@ def test_controller_telemetry_updates_link_status_and_counts_invalid_frames() ->
     assert app.state.controller_status.link_state == "invalid_telemetry"
     assert app.state.controller_status.invalid_frames == 1
 
+    app.state.controller_status = ControllerStatus(
+        configured=False,
+        link_state=ControllerLinkState.SIMULATED,
+    )
+
+
+def test_silent_controller_becomes_stale_and_health_degrades() -> None:
+    app.state.controller_status = ControllerStatus(
+        configured=True,
+        link_state=ControllerLinkState.ONLINE,
+        last_sequence=4,
+        last_received_at_ms=1_000,
+    )
+
+    mark_controller_telemetry_stale(app, now_ms=2_001)
+
+    assert client.get("/v1/controller").json()["link_state"] == "stale"
+    assert client.get("/health").json()["status"] == "degraded"
     app.state.controller_status = ControllerStatus(
         configured=False,
         link_state=ControllerLinkState.SIMULATED,

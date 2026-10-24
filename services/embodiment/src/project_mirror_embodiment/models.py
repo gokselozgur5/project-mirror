@@ -27,6 +27,7 @@ class ControllerLinkState(StrEnum):
     AWAITING_TELEMETRY = "awaiting_telemetry"
     ONLINE = "online"
     INVALID_TELEMETRY = "invalid_telemetry"
+    STALE = "stale"
 
 
 class EmbodimentState(StrictModel):
@@ -61,4 +62,5 @@ class ControllerStatus(StrictModel):
     last_sequence: int | None = Field(default=None, ge=0)
     last_mode: MotionMode | None = None
     last_reason: str | None = None
+    last_received_at_ms: int | None = Field(default=None, ge=0)
     invalid_frames: int = Field(default=0, ge=0)
