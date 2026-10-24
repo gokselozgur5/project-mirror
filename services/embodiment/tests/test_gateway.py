@@ -27,6 +27,10 @@ def target(**overrides: int | float) -> PoseTarget:
     return PoseTarget.model_validate(values)
 
 
+def gateway_with_clock(clock: FakeClock) -> EmbodimentGateway:
+    return EmbodimentGateway(clock=clock, motion_clock=clock)
+
+
 @pytest.mark.parametrize(
     "overrides",
     [
@@ -49,7 +53,7 @@ def test_rejects_unsafe_motion_limit_configuration(
 
 def test_clamps_pose_to_mechanical_limits() -> None:
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
     clock.now_ms = 2_000
 
     state = gateway.submit(target(issued_at_ms=2_000, yaw_deg=170, pitch_deg=-80))
@@ -61,7 +65,7 @@ def test_clamps_pose_to_mechanical_limits() -> None:
 
 def test_limits_velocity_and_acceleration() -> None:
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
 
     clock.now_ms = 1_100
     first = gateway.submit(target(issued_at_ms=1_100, yaw_deg=55, pitch_deg=25))
@@ -74,9 +78,28 @@ def test_limits_velocity_and_acceleration() -> None:
     assert second.pitch_deg == pytest.approx(8.1)
 
 
+def test_wall_clock_jump_cannot_bypass_motion_rate_limits() -> None:
+    wall_clock = FakeClock()
+    motion_clock = FakeClock()
+    gateway = EmbodimentGateway(clock=wall_clock, motion_clock=motion_clock)
+    wall_clock.now_ms += 3_600_000
+    motion_clock.now_ms += 100
+
+    state = gateway.submit(
+        target(
+            issued_at_ms=wall_clock.now_ms,
+            yaw_deg=55,
+            pitch_deg=25,
+        )
+    )
+
+    assert state.yaw_deg == pytest.approx(3.6)
+    assert state.pitch_deg == pytest.approx(2.7)
+
+
 def test_abrupt_reversal_at_limit_cannot_cross_mechanical_bounds() -> None:
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
     clock.now_ms = 2_000
     at_limit = gateway.submit(target(issued_at_ms=2_000, yaw_deg=55, pitch_deg=25))
     clock.now_ms = 2_100
@@ -111,7 +134,7 @@ def test_abrupt_reversal_at_limit_cannot_cross_mechanical_bounds() -> None:
 def test_deterministic_motion_fuzz_stays_inside_mechanical_bounds() -> None:
     random_source = random.Random(20261024)
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
 
     for sequence in range(1, 1_001):
         clock.now_ms += random_source.randint(1, 200)
@@ -130,7 +153,7 @@ def test_deterministic_motion_fuzz_stays_inside_mechanical_bounds() -> None:
 def test_motion_fuzz_obeys_rate_and_acceleration_away_from_hard_limits() -> None:
     random_source = random.Random(20261025)
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
     previous_yaw = 0.0
     previous_velocity = 0.0
 
@@ -157,7 +180,7 @@ def test_motion_fuzz_obeys_rate_and_acceleration_away_from_hard_limits() -> None
 
 def test_constant_target_settles_without_a_limit_cycle() -> None:
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
 
     for sequence in range(1, 101):
         clock.now_ms += 100
@@ -184,7 +207,7 @@ def test_rejects_replayed_sequence() -> None:
 
 def test_rejects_expired_command() -> None:
     clock = FakeClock(now_ms=2_000)
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
 
     with pytest.raises(CommandRejected, match="expired"):
         gateway.submit(target())
@@ -192,7 +215,7 @@ def test_rejects_expired_command() -> None:
 
 def test_returns_to_neutral_after_heartbeat_timeout() -> None:
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
     gateway.submit(target())
 
     clock.now_ms = 1_501
@@ -204,9 +227,43 @@ def test_returns_to_neutral_after_heartbeat_timeout() -> None:
     assert state.reason == "heartbeat_timeout"
 
 
+def test_fresh_pose_after_silence_restarts_from_expired_neutral_state() -> None:
+    clock = FakeClock()
+    gateway = gateway_with_clock(clock)
+    clock.now_ms = 1_100
+    gateway.submit(target(issued_at_ms=1_100, yaw_deg=55, pitch_deg=25))
+    clock.now_ms = 2_000
+
+    restarted = gateway.submit(
+        target(
+            sequence=2,
+            issued_at_ms=2_000,
+            yaw_deg=-55,
+            pitch_deg=-25,
+        )
+    )
+
+    assert restarted.mode is MotionMode.TRACKING
+    assert restarted.yaw_deg == 0
+    assert restarted.pitch_deg == 0
+    assert gateway.metrics().heartbeat_timeouts == 1
+
+    clock.now_ms = 2_100
+    moving = gateway.submit(
+        target(
+            sequence=3,
+            issued_at_ms=2_100,
+            yaw_deg=-55,
+            pitch_deg=-25,
+        )
+    )
+    assert moving.yaw_deg == pytest.approx(-3.6)
+    assert moving.pitch_deg == pytest.approx(-2.7)
+
+
 def test_stop_latches_until_explicit_arm() -> None:
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
     gateway.submit(target())
 
     first = gateway.stop()
@@ -227,7 +284,7 @@ def test_stop_latches_until_explicit_arm() -> None:
 
 def test_metrics_count_acceptance_rejection_timeout_and_stop() -> None:
     clock = FakeClock()
-    gateway = EmbodimentGateway(clock=clock)
+    gateway = gateway_with_clock(clock)
     gateway.submit(target())
     with pytest.raises(CommandRejected):
         gateway.submit(target())
@@ -245,3 +302,15 @@ def test_metrics_count_acceptance_rejection_timeout_and_stop() -> None:
     assert metrics.last_sequence == 1
     assert metrics.last_source_age_ms == 0
     assert metrics.uptime_ms == 501
+
+
+def test_metrics_observation_processes_pending_heartbeat_timeout() -> None:
+    clock = FakeClock()
+    gateway = gateway_with_clock(clock)
+    gateway.submit(target())
+    clock.now_ms = 1_501
+
+    metrics = gateway.metrics()
+
+    assert metrics.heartbeat_timeouts == 1
+    assert gateway.state().reason == "heartbeat_timeout"

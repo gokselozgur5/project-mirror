@@ -2,7 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from math import isfinite
 from threading import Lock
-from time import time_ns
+from time import monotonic_ns, time_ns
 
 from .models import EmbodimentState, GatewayMetrics, MotionMode, PoseTarget
 
@@ -11,6 +11,10 @@ Clock = Callable[[], int]
 
 def unix_ms() -> int:
     return time_ns() // 1_000_000
+
+
+def monotonic_ms() -> int:
+    return monotonic_ns() // 1_000_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,9 +61,15 @@ class CommandRejected(ValueError):
 
 
 class EmbodimentGateway:
-    def __init__(self, limits: MotionLimits | None = None, clock: Clock = unix_ms) -> None:
+    def __init__(
+        self,
+        limits: MotionLimits | None = None,
+        clock: Clock = unix_ms,
+        motion_clock: Clock = monotonic_ms,
+    ) -> None:
         self._limits = limits or MotionLimits()
         self._clock = clock
+        self._motion_clock = motion_clock
         now = clock()
         self._state = EmbodimentState(
             sequence=0,
@@ -70,6 +80,7 @@ class EmbodimentGateway:
             reason="startup",
         )
         self._expires_at_ms = now
+        self._last_motion_at_ms = motion_clock()
         self._started_at_ms = now
         self._accepted_commands = 0
         self._rejected_commands = 0
@@ -83,7 +94,9 @@ class EmbodimentGateway:
 
     def submit(self, target: PoseTarget) -> EmbodimentState:
         now = self._clock()
+        motion_now = self._motion_clock()
         with self._lock:
+            self._expire_if_needed(now, motion_now)
             if self._stop_latched:
                 self._reject("operator stop is latched")
             if target.sequence <= self._state.sequence:
@@ -95,7 +108,7 @@ class EmbodimentGateway:
 
             self._accepted_commands += 1
             self._last_source_age_ms = max(0, now - target.issued_at_ms)
-            elapsed_s = max(0.0, (now - self._state.updated_at_ms) / 1_000)
+            elapsed_s = max(0.0, (motion_now - self._last_motion_at_ms) / 1_000)
             bounded_yaw = _clamp(target.yaw_deg, self._limits.yaw_min_deg, self._limits.yaw_max_deg)
             bounded_pitch = _clamp(
                 target.pitch_deg,
@@ -142,27 +155,19 @@ class EmbodimentGateway:
                 mode=MotionMode.TRACKING,
             )
             self._expires_at_ms = target.issued_at_ms + target.ttl_ms
+            self._last_motion_at_ms = motion_now
             return self._state
 
     def state(self) -> EmbodimentState:
         now = self._clock()
+        motion_now = self._motion_clock()
         with self._lock:
-            if self._state.mode is MotionMode.TRACKING and now > self._expires_at_ms:
-                self._heartbeat_timeouts += 1
-                self._yaw_velocity_deg_s = 0.0
-                self._pitch_velocity_deg_s = 0.0
-                self._state = EmbodimentState(
-                    sequence=self._state.sequence,
-                    updated_at_ms=now,
-                    yaw_deg=0.0,
-                    pitch_deg=0.0,
-                    mode=MotionMode.NEUTRAL,
-                    reason="heartbeat_timeout",
-                )
+            self._expire_if_needed(now, motion_now)
             return self._state
 
     def stop(self, reason: str = "operator_stop") -> EmbodimentState:
         now = self._clock()
+        motion_now = self._motion_clock()
         with self._lock:
             self._stop_count += 1
             self._yaw_velocity_deg_s = 0.0
@@ -176,11 +181,13 @@ class EmbodimentGateway:
                 reason=reason,
             )
             self._expires_at_ms = now
+            self._last_motion_at_ms = motion_now
             self._stop_latched = True
             return self._state
 
     def arm(self) -> EmbodimentState:
         now = self._clock()
+        motion_now = self._motion_clock()
         with self._lock:
             self._stop_latched = False
             self._yaw_velocity_deg_s = 0.0
@@ -194,11 +201,14 @@ class EmbodimentGateway:
                 reason="operator_arm",
             )
             self._expires_at_ms = now
+            self._last_motion_at_ms = motion_now
             return self._state
 
     def metrics(self) -> GatewayMetrics:
         now = self._clock()
+        motion_now = self._motion_clock()
         with self._lock:
+            self._expire_if_needed(now, motion_now)
             return GatewayMetrics(
                 uptime_ms=max(0, now - self._started_at_ms),
                 accepted_commands=self._accepted_commands,
@@ -212,6 +222,22 @@ class EmbodimentGateway:
     def _reject(self, reason: str) -> None:
         self._rejected_commands += 1
         raise CommandRejected(reason)
+
+    def _expire_if_needed(self, now: int, motion_now: int) -> None:
+        if self._state.mode is not MotionMode.TRACKING or now <= self._expires_at_ms:
+            return
+        self._heartbeat_timeouts += 1
+        self._yaw_velocity_deg_s = 0.0
+        self._pitch_velocity_deg_s = 0.0
+        self._state = EmbodimentState(
+            sequence=self._state.sequence,
+            updated_at_ms=now,
+            yaw_deg=0.0,
+            pitch_deg=0.0,
+            mode=MotionMode.NEUTRAL,
+            reason="heartbeat_timeout",
+        )
+        self._last_motion_at_ms = motion_now
 
 
 def _clamp(value: float, lower: float, upper: float) -> float:
