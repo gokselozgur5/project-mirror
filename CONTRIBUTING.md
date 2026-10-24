@@ -22,5 +22,6 @@ intent; the issue tracker preserves project history.
 - New external messages are versioned in `packages/contracts`.
 - Hardware changes include a simulation or bench-test path.
 - No private media, credentials, model weights, or generated recordings enter
-  Git history.
+  Git history. CI scans historical filenames as well as the current tree; a
+  later deletion does not erase a public disclosure.
 - Safety limits remain enforced below model-controlled code.
