@@ -71,6 +71,16 @@ def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.Monk
     assert app.state.controller is None
 
 
+def test_serial_mode_refuses_to_start_without_control_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
+    monkeypatch.delenv("MIRROR_CONTROL_TOKEN", raising=False)
+
+    with pytest.raises(RuntimeError, match="MIRROR_CONTROL_TOKEN"), TestClient(app):
+        pass
+
+
 def test_pose_and_arm_require_configured_bearer_but_stop_remains_available(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
