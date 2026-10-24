@@ -88,10 +88,26 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
             )
         device = SerialDevice(port)
         transport = HeadControllerTransport(device)
+        try:
+            transport.request_status()
+            handshake_frame = device.read_frame()
+            if not handshake_frame:
+                raise RuntimeError("head controller did not answer the status handshake")
+            handshake = transport.synchronize(handshake_frame)
+        except RuntimeError:
+            device.close()
+            raise
+        except (SerialProtocolError, SerialTransportError) as error:
+            device.close()
+            raise RuntimeError("head controller returned an invalid status handshake") from error
         application.state.controller = transport
         application.state.controller_status = ControllerStatus(
             configured=True,
-            link_state=ControllerLinkState.AWAITING_TELEMETRY,
+            link_state=ControllerLinkState.ONLINE,
+            last_sequence=handshake.seq,
+            last_mode=MotionMode(handshake.mode),
+            last_reason=handshake.reason,
+            last_received_at_ms=time_ns() // 1_000_000,
         )
         reader_task = asyncio.create_task(read_controller_telemetry(application, device, transport))
     try:

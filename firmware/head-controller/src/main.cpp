@@ -27,6 +27,8 @@ int32_t lastPitchMilliDegrees = 0;
 bool armed = false;
 bool discardingFrame = false;
 bool stopLatched = false;
+const char *lastMode = "neutral";
+const char *lastReason = "startup";
 
 float clampValue(float value, float lower, float upper) {
   return std::max(lower, std::min(upper, value));
@@ -94,6 +96,8 @@ bool controlChecksumMatches(const char *operation, uint32_t sequence, const char
 
 void publishTelemetry(int32_t yawMilliDegrees, int32_t pitchMilliDegrees, const char *mode,
                       const char *reason) {
+  lastMode = mode;
+  lastReason = reason;
   const String payload = "1,telemetry," + String(lastSequence) + "," +
                          String(yawMilliDegrees) + "," + String(pitchMilliDegrees) + "," +
                          String(mode) + "," + String(reason) + "," + (armed ? "1" : "0");
@@ -128,9 +132,6 @@ void handleCommand(const String &line) {
   }
 
   const uint32_t sequence = sequenceValue.as<uint32_t>();
-  if (sequence <= lastSequence) {
-    return;
-  }
 
   if (object["op"].is<const char *>()) {
     const JsonVariantConst operationValue = object["op"];
@@ -140,8 +141,19 @@ void handleCommand(const String &line) {
       return;
     }
     const char *operation = operationValue.as<const char *>();
-    if ((strcmp(operation, "stop") != 0 && strcmp(operation, "arm") != 0) ||
+    if ((strcmp(operation, "stop") != 0 && strcmp(operation, "arm") != 0 &&
+         strcmp(operation, "status") != 0) ||
         !controlChecksumMatches(operation, sequence, checksumValue.as<const char *>())) {
+      return;
+    }
+
+    if (strcmp(operation, "status") == 0) {
+      if (sequence == 0) {
+        publishTelemetry(lastYawMilliDegrees, lastPitchMilliDegrees, lastMode, lastReason);
+      }
+      return;
+    }
+    if (sequence <= lastSequence) {
       return;
     }
 
@@ -156,6 +168,10 @@ void handleCommand(const String &line) {
       stopLatched = false;
       publishTelemetry(lastYawMilliDegrees, lastPitchMilliDegrees, "neutral", "operator_arm");
     }
+    return;
+  }
+
+  if (sequence <= lastSequence) {
     return;
   }
 

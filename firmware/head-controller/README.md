@@ -35,6 +35,9 @@ millidegrees. The uppercase CRC-32 covers the canonical ASCII payload
 `v,seq,yaw_mdeg,pitch_mdeg`; see ADR 0005 for the complete wire contract.
 Control frames use the payload `v,op,seq`. Stop latches and detaches both
 servos; arm clears the latch without attaching or moving them.
+Status always uses sequence zero, does not change motion or refresh the
+heartbeat, and returns current telemetry so a restarted host can resume after
+the controller's last accepted wire sequence.
 Commands with a stale sequence, unknown fields, invalid JSON, invalid checksum,
 or out-of-range values are rejected. An oversized frame is discarded in full
 until its next newline. Telemetry is also checksummed and reports the applied

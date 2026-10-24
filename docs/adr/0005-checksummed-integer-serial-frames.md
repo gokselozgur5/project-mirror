@@ -29,6 +29,10 @@ are rejected.
 Explicit control frames carry `op` instead of angles. Their checksum payload is
 `v,op,seq`, for example `1,stop,43`. A stop latches the controller and detaches
 the servos. Arm only clears that latch; it does not attach or move a servo.
+Status uses `1,status,0`, never changes motion or refreshes the heartbeat, and
+returns current telemetry. A newly opened host transport must complete this
+handshake and continue above the controller's reported sequence before it can
+publish pose, stop, or arm.
 
 Telemetry uses the canonical payload
 `v,telemetry,seq,yaw_mdeg,pitch_mdeg,mode,reason,armed`, where `armed` is `0` or

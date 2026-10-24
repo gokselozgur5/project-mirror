@@ -2,7 +2,14 @@ import json
 import zlib
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from .models import EmbodimentState
 
@@ -32,8 +39,8 @@ class WireControlCommand(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     v: int = Field(1, ge=1, le=1)
-    seq: int = Field(ge=1, le=4_294_967_295)
-    op: Literal["stop", "arm"]
+    seq: int = Field(ge=0, le=4_294_967_295)
+    op: Literal["stop", "arm", "status"]
     crc32: str = Field(pattern=r"^[0-9A-F]{8}$")
 
     @field_validator("crc32")
@@ -42,6 +49,14 @@ class WireControlCommand(BaseModel):
         if value != value.upper():
             raise ValueError("crc32 must use uppercase hexadecimal")
         return value
+
+    @model_validator(mode="after")
+    def validate_sequence_for_operation(self) -> "WireControlCommand":
+        if self.op == "status" and self.seq != 0:
+            raise ValueError("status requires sequence zero")
+        if self.op != "status" and self.seq == 0:
+            raise ValueError("motion control requires a positive sequence")
+        return self
 
 
 class WireTelemetry(BaseModel):
@@ -52,7 +67,9 @@ class WireTelemetry(BaseModel):
     yaw_mdeg: int = Field(ge=-55_000, le=55_000)
     pitch_mdeg: int = Field(ge=-25_000, le=25_000)
     mode: Literal["tracking", "neutral", "stopped"]
-    reason: Literal["pose", "operator_stop", "operator_arm", "heartbeat_timeout"]
+    reason: Literal[
+        "startup", "pose", "operator_stop", "operator_arm", "heartbeat_timeout"
+    ]
     armed: bool
     crc32: str = Field(pattern=r"^[0-9A-F]{8}$")
 
@@ -83,7 +100,9 @@ def encode_pose_command(state: EmbodimentState, *, wire_sequence: int | None = N
     return (command.model_dump_json() + "\n").encode("ascii")
 
 
-def encode_control_command(operation: Literal["stop", "arm"], sequence: int) -> bytes:
+def encode_control_command(
+    operation: Literal["stop", "arm", "status"], sequence: int
+) -> bytes:
     payload = _control_checksum_payload(1, operation, sequence)
     command = WireControlCommand(
         v=1,
@@ -168,7 +187,7 @@ def _checksum_payload(version: int, sequence: int, yaw_mdeg: int, pitch_mdeg: in
 
 
 def _control_checksum_payload(
-    version: int, operation: Literal["stop", "arm"], sequence: int
+    version: int, operation: Literal["stop", "arm", "status"], sequence: int
 ) -> bytes:
     return f"{version},{operation},{sequence}".encode("ascii")
 

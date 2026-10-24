@@ -11,7 +11,7 @@
     "yaw_mdeg": { "type": "integer", "minimum": -55000, "maximum": 55000 },
     "pitch_mdeg": { "type": "integer", "minimum": -25000, "maximum": 25000 },
     "mode": { "enum": ["tracking", "neutral", "stopped"] },
-    "reason": { "enum": ["pose", "operator_stop", "operator_arm", "heartbeat_timeout"] },
+    "reason": { "enum": ["startup", "pose", "operator_stop", "operator_arm", "heartbeat_timeout"] },
     "armed": { "type": "boolean" },
     "crc32": { "type": "string", "pattern": "^[0-9A-F]{8}$" }
   }
