@@ -53,6 +53,7 @@ def accept_controller_telemetry(
         application.state.controller_status = previous.model_copy(
             update={
                 "link_state": ControllerLinkState.INVALID_TELEMETRY,
+                "outputs_armed": None,
                 "invalid_frames": previous.invalid_frames + 1,
             }
         )
@@ -64,6 +65,7 @@ def accept_controller_telemetry(
         last_sequence=telemetry.seq,
         last_mode=MotionMode(telemetry.mode),
         last_reason=telemetry.reason,
+        outputs_armed=telemetry.armed,
         last_received_at_ms=time_ns() // 1_000_000,
         invalid_frames=previous.invalid_frames,
     )
@@ -82,7 +84,7 @@ def mark_controller_telemetry_stale(
         and now_ms > previous.last_received_at_ms + 1_000
     ):
         application.state.controller_status = previous.model_copy(
-            update={"link_state": ControllerLinkState.STALE}
+            update={"link_state": ControllerLinkState.STALE, "outputs_armed": None}
         )
         stop_for_controller_fault(transport, reason="stale_controller_telemetry")
 
@@ -139,6 +141,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
             last_sequence=handshake.seq,
             last_mode=MotionMode(handshake.mode),
             last_reason=handshake.reason,
+            outputs_armed=handshake.armed,
             last_received_at_ms=time_ns() // 1_000_000,
         )
         gateway.stop(reason="controller_startup")

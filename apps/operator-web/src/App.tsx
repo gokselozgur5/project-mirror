@@ -21,6 +21,7 @@ export function App() {
   const [commandStatus, setCommandStatus] = useState("No command sent");
   const [controlToken, setControlToken] = useState("");
   const [controllerLink, setControllerLink] = useState("simulated");
+  const [controllerArmed, setControllerArmed] = useState<boolean | null>(null);
   const sequence = useRef(0);
 
   useEffect(() => {
@@ -51,9 +52,15 @@ export function App() {
         const response = await fetch(`${gatewayHttp}/v1/controller`);
         if (!response.ok) return;
         const payload: unknown = await response.json();
-        if (active && isControllerStatus(payload)) setControllerLink(payload.link_state);
+        if (active && isControllerStatus(payload)) {
+          setControllerLink(payload.link_state);
+          setControllerArmed(payload.outputs_armed);
+        }
       } catch {
-        if (active) setControllerLink("unavailable");
+        if (active) {
+          setControllerLink("unavailable");
+          setControllerArmed(null);
+        }
       }
     };
     void poll();
@@ -160,7 +167,14 @@ export function App() {
         </div>
         <div className="metric controllerMetric">
           <span>CONTROLLER</span>
-          <strong>{controllerLink}</strong>
+          <strong>
+            {controllerLink}
+            {controllerArmed === null
+              ? ""
+              : controllerArmed
+                ? " / outputs armed"
+                : " / outputs detached"}
+          </strong>
         </div>
       </section>
 

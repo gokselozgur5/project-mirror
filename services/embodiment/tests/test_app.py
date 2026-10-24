@@ -336,10 +336,12 @@ def test_controller_telemetry_updates_link_status_and_counts_invalid_frames() ->
     accept_controller_telemetry(app, transport, frame)
     assert app.state.controller_status.link_state == "online"
     assert app.state.controller_status.last_sequence == 1
+    assert app.state.controller_status.outputs_armed is True
 
     accept_controller_telemetry(app, transport, b"damaged\n")
     assert app.state.controller_status.link_state == "invalid_telemetry"
     assert app.state.controller_status.invalid_frames == 1
+    assert app.state.controller_status.outputs_armed is None
     assert gateway.state().mode == "stopped"
     assert gateway.state().reason == "invalid_controller_telemetry"
     assert decode_control_command(stream.frames[-1]).op == "stop"
@@ -365,6 +367,7 @@ def test_silent_controller_becomes_stale_and_health_degrades() -> None:
     mark_controller_telemetry_stale(app, transport, now_ms=2_001)
 
     assert client.get("/v1/controller").json()["link_state"] == "stale"
+    assert client.get("/v1/controller").json()["outputs_armed"] is None
     assert client.get("/health").json()["status"] == "degraded"
     assert gateway.state().mode == "stopped"
     assert gateway.state().reason == "stale_controller_telemetry"
