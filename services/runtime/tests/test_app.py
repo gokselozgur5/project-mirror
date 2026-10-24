@@ -75,6 +75,20 @@ def test_gateway_connection_failure_becomes_service_unavailable(
     assert response.json()["detail"] == "embodiment gateway unavailable"
 
 
+def test_non_json_gateway_rejection_uses_stable_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(502, text="proxy error", request=request)
+
+    install_gateway(monkeypatch, httpx.MockTransport(handler))
+
+    response = client.post("/v1/observation", json=observation())
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "gateway rejected pose"
+
+
 def test_ignored_observation_does_not_call_gateway(monkeypatch: pytest.MonkeyPatch) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise AssertionError(f"unexpected gateway request: {request.url}")
