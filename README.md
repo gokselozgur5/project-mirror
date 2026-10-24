@@ -88,7 +88,8 @@ make phase1-soak
 
 See [the operator runbook](docs/RUNBOOK.md) for health checks, stop and recovery
 behavior, telemetry, and troubleshooting. The latest measured Phase 1 result is
-recorded in [the simulation evidence](docs/evidence/phase1-simulation.md).
+recorded in [the simulation evidence](docs/evidence/phase1-simulation.md). Start
+future development sessions with [the current status](docs/STATUS.md).
 
 ## Safety boundary
 
