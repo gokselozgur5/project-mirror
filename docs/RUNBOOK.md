@@ -36,6 +36,10 @@ make run-gateway
 This opens no serial device. During controller-only Phase 2 bench work, an
 explicit `MIRROR_SERIAL_PORT=/dev/...` selects the device. Never set it with
 servos attached until controller, power, geometry, and stop checks are complete.
+Physical mode also requires `MIRROR_CONTROL_TOKEN`; pass the same value to the
+runtime as `MIRROR_GATEWAY_TOKEN` or enter it into the operator field for the
+current browser session. The browser keeps it only in memory. Stop remains
+unauthenticated so a missing credential cannot prevent an emergency stop.
 
 Terminal 2 — character runtime:
 

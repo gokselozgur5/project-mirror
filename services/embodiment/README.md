@@ -36,12 +36,16 @@ To open a controller explicitly, set the serial device before starting the
 gateway:
 
 ```bash
+MIRROR_CONTROL_TOKEN=replace-with-a-random-session-secret \
 MIRROR_SERIAL_PORT=/dev/cu.usbmodem-controller \
   uvicorn project_mirror_embodiment.app:app --port 8080
 ```
 
 The default is simulation and opens no device. A configured port that cannot be
 opened fails service startup instead of silently falling back to simulation.
+Physical mode also refuses to start without a control token. Pose and arm
+require its bearer authorization; emergency stop deliberately remains
+available without it.
 Validated controller telemetry is exposed at `/v1/controller`; corrupt,
 unpublished-future, and backwards sequence frames are counted and never
 reported as an online controller state.

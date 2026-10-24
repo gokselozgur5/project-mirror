@@ -47,6 +47,8 @@ h1 { margin: 0; font-size: clamp(36px, 7vw, 72px); line-height: .95; letter-spac
 .controls h2 { margin: 0 0 6px; font-size: 18px; }
 .controls p { margin: 0 0 18px; color: #91a099; }
 .controls .commandStatus { color: #8cf0bd; font: 600 12px/1.4 ui-monospace, monospace; }
+.tokenField { display: grid; gap: 7px; max-width: 360px; margin: 0 0 18px; color: #91a099; font-size: 12px; }
+.tokenField input { padding: 10px 12px; border: 1px solid #354139; border-radius: 9px; color: #edf4ef; background: #0c1110; font: 500 13px/1 ui-monospace, monospace; }
 .buttonRow { display: flex; flex-wrap: wrap; gap: 10px; }
 .buttonRow button { padding: 11px 14px; border: 1px solid #354139; border-radius: 10px; color: #dce8e1; background: #18201c; cursor: pointer; }
 .buttonRow button:hover { border-color: #8cf0bd; }
