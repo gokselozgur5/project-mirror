@@ -25,7 +25,7 @@ class FaceCandidate(StrictModel):
 
 class FrameDetections(StrictModel):
     version: int = Field(1, ge=1, le=1)
-    sequence: int = Field(ge=0)
+    sequence: int = Field(ge=0, le=4_294_967_295)
     observed_at_ms: int = Field(ge=0)
     faces: list[FaceCandidate] = Field(max_length=32)
 
@@ -38,6 +38,6 @@ class FaceDirection(StrictModel):
 
 class Observation(StrictModel):
     version: int = 1
-    sequence: int = Field(ge=0)
+    sequence: int = Field(ge=0, le=4_294_967_295)
     observed_at_ms: int = Field(ge=0)
     face: FaceDirection | None

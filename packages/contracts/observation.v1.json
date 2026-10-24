@@ -7,7 +7,7 @@
   "required": ["version", "sequence", "observed_at_ms", "face"],
   "properties": {
     "version": { "const": 1 },
-    "sequence": { "type": "integer", "minimum": 0 },
+    "sequence": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
     "observed_at_ms": { "type": "integer", "minimum": 0 },
     "face": {
       "oneOf": [

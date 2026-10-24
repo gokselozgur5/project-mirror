@@ -7,7 +7,7 @@
   "required": ["version", "sequence", "updated_at_ms", "yaw_deg", "pitch_deg", "mode"],
   "properties": {
     "version": { "const": 1 },
-    "sequence": { "type": "integer", "minimum": 0 },
+    "sequence": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
     "updated_at_ms": { "type": "integer", "minimum": 0 },
     "yaw_deg": { "type": "number", "minimum": -55, "maximum": 55 },
     "pitch_deg": { "type": "number", "minimum": -25, "maximum": 25 },

@@ -9,7 +9,7 @@ class StrictModel(BaseModel):
 
 class PoseTarget(StrictModel):
     version: int = Field(1, ge=1, le=1)
-    sequence: int = Field(ge=0)
+    sequence: int = Field(ge=0, le=4_294_967_295)
     issued_at_ms: int = Field(ge=0)
     ttl_ms: int = Field(ge=50, le=2_000)
     yaw_deg: float = Field(ge=-180, le=180)
@@ -32,7 +32,7 @@ class ControllerLinkState(StrEnum):
 
 class EmbodimentState(StrictModel):
     version: int = 1
-    sequence: int = Field(ge=0)
+    sequence: int = Field(ge=0, le=4_294_967_295)
     updated_at_ms: int = Field(ge=0)
     yaw_deg: float = Field(ge=-55, le=55)
     pitch_deg: float = Field(ge=-25, le=25)
