@@ -30,8 +30,12 @@ export function isEmbodimentState(value: unknown): value is EmbodimentState {
     Number.isFinite(candidate.updated_at_ms) &&
     typeof candidate.yaw_deg === "number" &&
     Number.isFinite(candidate.yaw_deg) &&
+    candidate.yaw_deg >= -55 &&
+    candidate.yaw_deg <= 55 &&
     typeof candidate.pitch_deg === "number" &&
     Number.isFinite(candidate.pitch_deg) &&
+    candidate.pitch_deg >= -25 &&
+    candidate.pitch_deg <= 25 &&
     (candidate.mode === "tracking" ||
       candidate.mode === "neutral" ||
       candidate.mode === "stopped") &&
