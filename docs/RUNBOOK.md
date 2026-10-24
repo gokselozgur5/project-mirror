@@ -48,6 +48,8 @@ Physical mode also requires `MIRROR_CONTROL_TOKEN`; pass the same value to the
 runtime as `MIRROR_GATEWAY_TOKEN` or enter it into the operator field for the
 current browser session. The browser keeps it only in memory. Stop remains
 unauthenticated so a missing credential cannot prevent an emergency stop.
+After a physical controller handshake, both host and firmware remain
+stop-latched until an authenticated explicit arm.
 
 Terminal 2 — character runtime:
 

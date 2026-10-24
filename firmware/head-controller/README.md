@@ -38,6 +38,8 @@ servos; arm clears the latch without attaching or moving them.
 Status always uses sequence zero, does not change motion or refresh the
 heartbeat, and returns current telemetry so a restarted host can resume after
 the controller's last accepted wire sequence.
+The controller boots detached and stop-latched. A valid arm frame must precede
+the first pose after every controller boot.
 Commands with a stale sequence, unknown fields, invalid JSON, invalid checksum,
 or out-of-range values are rejected. An oversized frame is discarded in full
 until its next newline. Telemetry is also checksummed and reports the applied
