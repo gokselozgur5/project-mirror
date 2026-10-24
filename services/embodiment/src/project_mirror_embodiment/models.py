@@ -63,5 +63,6 @@ class ControllerStatus(StrictModel):
     last_sequence: int | None = Field(default=None, ge=0)
     last_mode: MotionMode | None = None
     last_reason: str | None = None
+    outputs_armed: bool | None = None
     last_received_at_ms: int | None = Field(default=None, ge=0)
     invalid_frames: int = Field(default=0, ge=0)

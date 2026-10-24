@@ -44,6 +44,11 @@ describe("controller status validation", () => {
       isControllerStatus({
         configured: true,
         link_state: "online",
+        last_sequence: 4,
+        last_mode: "tracking",
+        last_reason: "pose",
+        outputs_armed: true,
+        last_received_at_ms: 1_000,
         invalid_frames: 0,
       }),
     ).toBe(true);
@@ -54,7 +59,22 @@ describe("controller status validation", () => {
       isControllerStatus({
         configured: true,
         link_state: "probably_online",
+        last_sequence: null,
+        last_mode: null,
+        last_reason: null,
+        outputs_armed: null,
+        last_received_at_ms: null,
         invalid_frames: -1,
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects an incomplete payload despite a known link state", () => {
+    expect(
+      isControllerStatus({
+        configured: true,
+        link_state: "online",
+        invalid_frames: 0,
       }),
     ).toBe(false);
   });
