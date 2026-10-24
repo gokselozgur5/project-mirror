@@ -60,3 +60,26 @@ def test_runtime_unavailable_is_explicit(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert response.status_code == 503
     assert response.json()["detail"] == "character runtime unavailable"
+
+
+def test_non_json_runtime_rejection_uses_stable_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(502, text="proxy error", request=request)
+
+    monkeypatch.setattr(
+        "project_mirror_perception.app.create_runtime_client",
+        lambda base_url: httpx.AsyncClient(
+            base_url=base_url,
+            transport=httpx.MockTransport(handler),
+        ),
+    )
+
+    response = client.post(
+        "/v1/detections",
+        json={"version": 1, "sequence": 9, "observed_at_ms": 1_000, "faces": []},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "runtime rejected observation"

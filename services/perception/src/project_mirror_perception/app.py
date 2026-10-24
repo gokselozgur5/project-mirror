@@ -14,6 +14,17 @@ def create_runtime_client(base_url: str) -> httpx.AsyncClient:
     return httpx.AsyncClient(base_url=base_url, timeout=1.0)
 
 
+def upstream_detail(response: httpx.Response, fallback: str) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        return fallback
+    detail = payload.get("detail") if isinstance(payload, dict) else None
+    if isinstance(detail, str):
+        return detail
+    return fallback
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "media": "not_retained"}
@@ -28,7 +39,7 @@ async def detections(frame: FrameDetections) -> Observation:
             response = await client.post("/v1/observation", json=observation.model_dump())
             response.raise_for_status()
     except httpx.HTTPStatusError as error:
-        detail = error.response.json().get("detail", "runtime rejected observation")
+        detail = upstream_detail(error.response, "runtime rejected observation")
         raise HTTPException(status_code=error.response.status_code, detail=detail) from error
     except httpx.HTTPError as error:
         raise HTTPException(
