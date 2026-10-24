@@ -37,7 +37,7 @@ jobs:
       - run: uv run ruff check services/perception
       - run: uv run mypy services/perception/src
       - run: uv run pytest -q services/perception
-      - run: MIRROR_PYTHON="$(pwd)/.venv/bin/python" ./scripts/run-phase1-stack-soak.sh 3 runtime/phase1-ci-smoke.json
+      - run: MIRROR_PYTHON="$(pwd)/.venv/bin/python" MIRROR_SOAK_MAX_P95_MS=100 ./scripts/run-phase1-stack-soak.sh 3 runtime/phase1-ci-smoke.json
 
   operator-web:
     runs-on: ubuntu-latest

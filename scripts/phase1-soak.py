@@ -32,6 +32,12 @@ class SoakReport:
     gateway_rss_start_bytes: int | None
     gateway_rss_end_bytes: int | None
     gateway_rss_growth_bytes: int | None
+    runtime_rss_start_bytes: int | None
+    runtime_rss_end_bytes: int | None
+    runtime_rss_growth_bytes: int | None
+    perception_rss_start_bytes: int | None
+    perception_rss_end_bytes: int | None
+    perception_rss_growth_bytes: int | None
     timeout_mode: str
     timeout_reason: str | None
     gateway_metrics: dict[str, Any]
@@ -57,6 +63,8 @@ async def run(args: argparse.Namespace) -> SoakReport:
     sequence_lag_max = 0
     stop_at = time.monotonic() + args.duration
     rss_start = process_rss_bytes(args.gateway_pid)
+    runtime_rss_start = process_rss_bytes(args.runtime_pid)
+    perception_rss_start = process_rss_bytes(args.perception_pid)
 
     async with httpx.AsyncClient(base_url=args.gateway_http, timeout=2.0) as client:
         initial_metrics = (await client.get("/v1/metrics")).json()
@@ -158,7 +166,11 @@ async def run(args: argparse.Namespace) -> SoakReport:
         gateway_metrics = (await client.get("/v1/metrics")).json()
 
     rss_end = process_rss_bytes(args.gateway_pid)
+    runtime_rss_end = process_rss_bytes(args.runtime_pid)
+    perception_rss_end = process_rss_bytes(args.perception_pid)
     rss_growth = None if rss_start is None or rss_end is None else rss_end - rss_start
+    runtime_rss_growth = rss_growth_bytes(runtime_rss_start, runtime_rss_end)
+    perception_rss_growth = rss_growth_bytes(perception_rss_start, perception_rss_end)
 
     passed = (
         failures == 0
@@ -168,6 +180,14 @@ async def run(args: argparse.Namespace) -> SoakReport:
         and percentile(request_latencies, 0.95) <= args.max_p95_ms
         and percentile(state_ages, 0.95) <= args.max_state_age_ms
         and (rss_growth is None or rss_growth <= args.max_rss_growth_bytes)
+        and (
+            runtime_rss_growth is None
+            or runtime_rss_growth <= args.max_rss_growth_bytes
+        )
+        and (
+            perception_rss_growth is None
+            or perception_rss_growth <= args.max_rss_growth_bytes
+        )
         and timeout_state["mode"] == "neutral"
         and timeout_state["reason"] == "heartbeat_timeout"
     )
@@ -188,6 +208,12 @@ async def run(args: argparse.Namespace) -> SoakReport:
         gateway_rss_start_bytes=rss_start,
         gateway_rss_end_bytes=rss_end,
         gateway_rss_growth_bytes=rss_growth,
+        runtime_rss_start_bytes=runtime_rss_start,
+        runtime_rss_end_bytes=runtime_rss_end,
+        runtime_rss_growth_bytes=runtime_rss_growth,
+        perception_rss_start_bytes=perception_rss_start,
+        perception_rss_end_bytes=perception_rss_end,
+        perception_rss_growth_bytes=perception_rss_growth,
         timeout_mode=timeout_state["mode"],
         timeout_reason=timeout_state["reason"],
         gateway_metrics=gateway_metrics,
@@ -209,6 +235,12 @@ def process_rss_bytes(pid: int | None) -> int | None:
         return None
 
 
+def rss_growth_bytes(start: int | None, end: int | None) -> int | None:
+    if start is None or end is None:
+        return None
+    return end - start
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Measure the Phase 1 simulated gaze pipeline"
@@ -223,6 +255,8 @@ def main() -> None:
     parser.add_argument("--max-p95-ms", type=float, default=50.0)
     parser.add_argument("--max-state-age-ms", type=float, default=250.0)
     parser.add_argument("--gateway-pid", type=int)
+    parser.add_argument("--runtime-pid", type=int)
+    parser.add_argument("--perception-pid", type=int)
     parser.add_argument("--max-rss-growth-bytes", type=int, default=32 * 1024 * 1024)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
