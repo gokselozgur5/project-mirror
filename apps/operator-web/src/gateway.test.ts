@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { controlHeaders, initialState, isEmbodimentState } from "./gateway";
+import {
+  controlHeaders,
+  initialState,
+  isControllerStatus,
+  isEmbodimentState,
+} from "./gateway";
 
 describe("gateway state validation", () => {
   it("accepts the complete versioned state", () => {
@@ -30,5 +35,27 @@ describe("control authorization", () => {
     expect(controlHeaders("session-token", false)).toEqual({
       authorization: "Bearer session-token",
     });
+  });
+});
+
+describe("controller status validation", () => {
+  it("accepts a known physical link state", () => {
+    expect(
+      isControllerStatus({
+        configured: true,
+        link_state: "online",
+        invalid_frames: 0,
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects unknown or invalid link state", () => {
+    expect(
+      isControllerStatus({
+        configured: true,
+        link_state: "probably_online",
+        invalid_frames: -1,
+      }),
+    ).toBe(false);
   });
 });
