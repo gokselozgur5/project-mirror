@@ -71,14 +71,18 @@ make bootstrap
 make check
 ```
 
-Start the gateway, runtime, and web operator in separate terminals:
+Start the gateway, runtime, optional derived-perception adapter, and web
+operator in separate terminals:
 
 ```bash
 make run-gateway
-MIRROR_GATEWAY_URL=http://127.0.0.1:8080 \
-  .venv/bin/uvicorn project_mirror_runtime.app:app --reload --port 8081
+make run-runtime
+make run-perception
 npm run dev:web
 ```
+
+The perception service currently accepts derived boxes from tests or a future
+local detector; it does not open a camera.
 
 Run the automated five-minute Phase 1 acceptance test with:
 

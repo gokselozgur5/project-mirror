@@ -19,6 +19,9 @@ in `docs/evidence/phase1-simulation.md`.
 
 - Versioned observation, pose, embodiment-state, and serial-command contracts.
 - Face-direction policy with confidence threshold and center dead zone.
+- Privacy-preserving perception adapter that selects a deterministic target
+  from derived face boxes and emits the public observation contract without raw
+  image fields.
 - Bounded gateway with stale/future/sequence rejection, velocity and
   acceleration limits, telemetry, latched stop, explicit arm, and heartbeat
   neutral behavior.
@@ -36,7 +39,8 @@ in `docs/evidence/phase1-simulation.md`.
 
 ## Not implemented or not proven
 
-- No camera adapter; Phase 1 observations are synthetic.
+- No camera/detector backend; Phase 1 observations are synthetic and the new
+  perception boundary accepts only already-derived boxes.
 - An explicit `MIRROR_SERIAL_PORT` opens a controller, dispatches writes, and
   reads validated telemetry into `/v1/controller`; this remains fake-tested,
   not board-tested.

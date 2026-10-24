@@ -3,7 +3,7 @@ SHELL := /bin/bash
 UV ?= uv
 VENV := .venv
 
-.PHONY: bootstrap check test lint typecheck build firmware protocol-corpus run-gateway run-web simulate phase1-soak privacy-check
+.PHONY: bootstrap check test lint typecheck build firmware protocol-corpus run-gateway run-runtime run-perception run-web simulate phase1-soak privacy-check
 
 bootstrap:
 	$(UV) sync --locked --all-packages --all-extras
@@ -12,14 +12,16 @@ bootstrap:
 test:
 	$(VENV)/bin/pytest -q services/embodiment
 	$(VENV)/bin/pytest -q services/runtime
+	$(VENV)/bin/pytest -q services/perception
 
 lint:
-	$(VENV)/bin/ruff check services/embodiment services/runtime scripts
+	$(VENV)/bin/ruff check services/embodiment services/runtime services/perception scripts
 	npm run lint
 
 typecheck:
 	$(VENV)/bin/mypy services/embodiment/src
 	$(VENV)/bin/mypy services/runtime/src
+	$(VENV)/bin/mypy services/perception/src
 	npm run typecheck
 
 build:
@@ -39,6 +41,12 @@ check: privacy-check lint typecheck test build
 
 run-gateway:
 	$(VENV)/bin/uvicorn project_mirror_embodiment.app:app --reload --port 8080
+
+run-runtime:
+	MIRROR_GATEWAY_URL=http://127.0.0.1:8080 $(VENV)/bin/uvicorn project_mirror_runtime.app:app --reload --port 8081
+
+run-perception:
+	MIRROR_RUNTIME_URL=http://127.0.0.1:8081 $(VENV)/bin/uvicorn project_mirror_perception.app:app --reload --port 8082
 
 run-web:
 	npm run dev:web

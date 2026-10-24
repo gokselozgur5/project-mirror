@@ -9,5 +9,6 @@ package = false
 [tool.uv.workspace]
 members = [
   "services/embodiment",
+  "services/perception",
   "services/runtime"
 ]
