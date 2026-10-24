@@ -31,3 +31,14 @@ advance that source value. Its in-memory transport tests do not open a serial
 port; selecting a device and validating telemetry remain Phase 2 work. When a
 transport is configured on the application, incomplete writes fail closed by
 latching the host gateway stopped.
+
+To open a controller explicitly, set the serial device before starting the
+gateway:
+
+```bash
+MIRROR_SERIAL_PORT=/dev/cu.usbmodem-controller \
+  uvicorn project_mirror_embodiment.app:app --port 8080
+```
+
+The default is simulation and opens no device. A configured port that cannot be
+opened fails service startup instead of silently falling back to simulation.

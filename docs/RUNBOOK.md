@@ -33,6 +33,10 @@ Terminal 1 — bounded embodiment gateway:
 make run-gateway
 ```
 
+This opens no serial device. During controller-only Phase 2 bench work, an
+explicit `MIRROR_SERIAL_PORT=/dev/...` selects the device. Never set it with
+servos attached until controller, power, geometry, and stop checks are complete.
+
 Terminal 2 — character runtime:
 
 ```bash
@@ -58,6 +62,10 @@ curl --fail http://127.0.0.1:8081/health
 curl --fail http://127.0.0.1:8080/v1/state
 curl --fail http://127.0.0.1:8080/v1/metrics
 ```
+
+Gateway health reports `controller: simulated` unless an explicit serial device
+was opened successfully. Failure to open a requested device aborts startup; it
+does not silently fall back to simulation.
 
 The operator view shows the current mode, target and applied pose, receipt age,
 sequence, and last transition reason. A stale publisher must cause the applied

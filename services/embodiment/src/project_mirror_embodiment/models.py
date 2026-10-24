@@ -35,6 +35,7 @@ class EmbodimentState(StrictModel):
 class Health(StrictModel):
     status: str
     mode: MotionMode
+    controller: str
 
 
 class GatewayMetrics(StrictModel):

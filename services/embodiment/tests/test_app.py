@@ -1,5 +1,6 @@
 from time import time_ns
 
+import pytest
 from fastapi.testclient import TestClient
 
 from project_mirror_embodiment.app import app, gateway
@@ -26,11 +27,36 @@ class ShortWriteStream:
         return len(data) - 1
 
 
+class ClosableMemoryStream(MemoryStream):
+    def __init__(self) -> None:
+        super().__init__()
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
 def test_health() -> None:
     response = client.get("/health")
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+    assert response.json()["controller"] == "simulated"
+
+
+def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    device = ClosableMemoryStream()
+    monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
+    monkeypatch.setattr(
+        "project_mirror_embodiment.app.SerialDevice",
+        lambda port: device,
+    )
+
+    with TestClient(app) as configured_client:
+        assert configured_client.get("/health").json()["controller"] == "serial"
+
+    assert device.closed is True
+    assert app.state.controller is None
 
 
 def test_pose_endpoint_clamps_values() -> None:
