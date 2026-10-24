@@ -122,6 +122,17 @@ def test_status_handshake_resumes_controller_sequence() -> None:
     assert transport.publish_control("stop") == 43
 
 
+def test_status_poll_does_not_advance_active_transport_sequence() -> None:
+    stream = MemoryStream()
+    transport = HeadControllerTransport(stream)
+    assert transport.publish_control("stop") == 1
+
+    transport.request_status()
+
+    assert decode_control_command(stream.frames[-1]).op == "status"
+    assert transport.sequence == 1
+
+
 def test_transport_waits_for_exact_telemetry_acknowledgement() -> None:
     transport = HeadControllerTransport(MemoryStream())
     sequence = transport.publish_control("arm")
