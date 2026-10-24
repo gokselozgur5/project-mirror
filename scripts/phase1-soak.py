@@ -72,15 +72,35 @@ async def run(args: argparse.Namespace) -> SoakReport:
                 await asyncio.sleep(max(0.0, target_time - time.monotonic()))
                 elapsed = time.monotonic() - started
                 timestamp_ms = time.time_ns() // 1_000_000
-                if args.runtime_http:
+                direction_x = math.sin(elapsed * 0.7) * 0.96
+                direction_y = math.sin(elapsed * 1.1) * 0.90
+                if args.perception_http:
+                    center_x = (direction_x + 1) / 2
+                    center_y = (direction_y + 1) / 2
+                    endpoint = f"{args.perception_http}/v1/detections"
+                    payload = {
+                        "version": 1,
+                        "sequence": sequence,
+                        "observed_at_ms": timestamp_ms,
+                        "faces": [
+                            {
+                                "left": center_x - 0.02,
+                                "top": center_y - 0.02,
+                                "right": center_x + 0.02,
+                                "bottom": center_y + 0.02,
+                                "confidence": 0.95,
+                            }
+                        ],
+                    }
+                elif args.runtime_http:
                     endpoint = f"{args.runtime_http}/v1/observation"
                     payload = {
                         "version": 1,
                         "sequence": sequence,
                         "observed_at_ms": timestamp_ms,
                         "face": {
-                            "x": math.sin(elapsed * 0.7) * 0.96,
-                            "y": math.sin(elapsed * 1.1) * 0.90,
+                            "x": direction_x,
+                            "y": direction_y,
                             "confidence": 0.95,
                         },
                     }
@@ -196,6 +216,7 @@ def main() -> None:
     parser.add_argument("--gateway-http", default="http://127.0.0.1:8080")
     parser.add_argument("--gateway-ws", default="ws://127.0.0.1:8080/v1/stream")
     parser.add_argument("--runtime-http")
+    parser.add_argument("--perception-http")
     parser.add_argument("--duration", type=float, default=300.0)
     parser.add_argument("--publish-hz", type=float, default=10.0)
     parser.add_argument("--ttl-ms", type=int, default=500)
