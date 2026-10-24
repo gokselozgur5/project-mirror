@@ -28,4 +28,6 @@ is only accepted in tests that inject their own clock.
 to checksummed controller frames. It owns a monotonic wire sequence independent
 of the source pose sequence, because stop and timeout transitions may not
 advance that source value. Its in-memory transport tests do not open a serial
-port; selecting a device and validating telemetry remain Phase 2 work.
+port; selecting a device and validating telemetry remain Phase 2 work. When a
+transport is configured on the application, incomplete writes fail closed by
+latching the host gateway stopped.

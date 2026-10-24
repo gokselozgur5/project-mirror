@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .gateway import CommandRejected, EmbodimentGateway
 from .models import EmbodimentState, GatewayMetrics, Health, PoseTarget
+from .serial_transport import HeadControllerTransport, SerialTransportError
 
 app = FastAPI(title="Project Mirror Embodiment Gateway", version="0.1.0")
 app.add_middleware(
@@ -16,6 +17,20 @@ app.add_middleware(
     allow_headers=["content-type"],
 )
 gateway = EmbodimentGateway()
+app.state.controller = None
+
+
+def controller() -> HeadControllerTransport | None:
+    configured: HeadControllerTransport | None = app.state.controller
+    return configured
+
+
+def fail_closed_after_transport_error(error: SerialTransportError) -> None:
+    gateway.stop(reason="controller_write_failure")
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="head controller write failed; gateway stop is latched",
+    ) from error
 
 
 @app.get("/health", response_model=Health)
@@ -36,18 +51,38 @@ def get_metrics() -> GatewayMetrics:
 @app.post("/v1/pose", response_model=EmbodimentState)
 def set_pose(target: PoseTarget) -> EmbodimentState:
     try:
-        return gateway.submit(target)
+        state = gateway.submit(target)
     except CommandRejected as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+    configured = controller()
+    if configured is not None:
+        try:
+            configured.publish_pose(state)
+        except SerialTransportError as error:
+            fail_closed_after_transport_error(error)
+    return state
 
 
 @app.post("/v1/stop", response_model=EmbodimentState)
 def stop() -> EmbodimentState:
-    return gateway.stop()
+    state = gateway.stop()
+    configured = controller()
+    if configured is not None:
+        try:
+            configured.publish_control("stop")
+        except SerialTransportError as error:
+            fail_closed_after_transport_error(error)
+    return state
 
 
 @app.post("/v1/arm", response_model=EmbodimentState)
 def arm() -> EmbodimentState:
+    configured = controller()
+    if configured is not None:
+        try:
+            configured.publish_control("arm")
+        except SerialTransportError as error:
+            fail_closed_after_transport_error(error)
     return gateway.arm()
 
 
