@@ -42,13 +42,21 @@ No servos or mechanism connected.
 1. Build native protocol tests and firmware with `make firmware`.
 2. Flash the exact recorded revision.
 3. Confirm startup leaves servo outputs detached.
-4. Send a valid stop and verify checksummed `operator_stop` telemetry.
-5. Generate the 100-frame offline corpus with `make protocol-corpus`.
-6. Send each malformed frame using a bench harness and verify there is no
-   accepted-command telemetry or output activation.
-7. Send a final valid stop and verify the parser remains responsive.
-8. Arm, send valid poses, stop heartbeats, and measure detach time.
-9. Disconnect USB during traffic and verify outputs become inactive.
+4. Run the guarded protocol harness, substituting the exact serial path:
+
+   ```sh
+   .venv/bin/python scripts/run-controller-gate-one.py \
+     --port /dev/cu.usbmodem-EXACT \
+     --confirm-servos-disconnected
+   ```
+
+   It verifies status synchronization, valid stop, rejection of all 100
+   malformed frames, parser recovery, arm acknowledgement, a neutral pose,
+   heartbeat detach, and final stop. It prints a machine-readable JSON result
+   and attempts a final stop if the run aborts.
+5. Independently confirm that no malformed frame activated an output using the
+   attached logic analyzer; a lack of telemetry alone is not physical proof.
+6. Disconnect USB during traffic and verify outputs become inactive.
 
 Exit: no malformed input activates outputs; stop is latched; heartbeat and USB
 loss detach within the configured bound; Python and captured board telemetry
