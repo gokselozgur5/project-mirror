@@ -52,7 +52,8 @@ No servos or mechanism connected.
 
    It verifies status synchronization, valid stop, rejection of all 100
    malformed frames, parser recovery, arm acknowledgement, a neutral pose,
-   heartbeat detach, and final stop. It prints a machine-readable JSON result
+   heartbeat detach within the 800 ms bench deadline, and final stop. It prints
+   the measured heartbeat observation time in a machine-readable JSON result
    and attempts a final stop if the run aborts.
 5. Independently confirm that no malformed frame activated an output using the
    attached logic analyzer; a lack of telemetry alone is not physical proof.

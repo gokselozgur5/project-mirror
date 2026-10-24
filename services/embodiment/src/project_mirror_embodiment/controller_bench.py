@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterable
 from contextlib import suppress
 from dataclasses import asdict, dataclass
-from time import sleep
+from time import monotonic
 from typing import Protocol
 
 from .models import EmbodimentState, MotionMode
@@ -21,6 +21,7 @@ class GateOneReport:
     malformed_frames_sent: int
     unexpected_malformed_responses: int
     heartbeat_sequence: int
+    heartbeat_elapsed_ms: int
     final_sequence: int
     passed: bool
 
@@ -32,12 +33,12 @@ def run_gate_one(
     device: BenchDevice,
     malformed_frames: Iterable[bytes],
     *,
-    heartbeat_wait_s: float = 0.65,
-    sleep_fn: Callable[[float], None] = sleep,
+    heartbeat_deadline_s: float = 0.8,
+    monotonic_fn: Callable[[], float] = monotonic,
 ) -> GateOneReport:
     """Exercise the unpowered controller protocol and fail on any mismatch."""
-    if heartbeat_wait_s < 0.5:
-        raise ValueError("heartbeat wait must cover the 500 ms firmware timeout")
+    if heartbeat_deadline_s < 0.5:
+        raise ValueError("heartbeat deadline must cover the 500 ms firmware timeout")
 
     transport = HeadControllerTransport(device)
     try:
@@ -45,8 +46,8 @@ def run_gate_one(
             device,
             transport,
             malformed_frames,
-            heartbeat_wait_s=heartbeat_wait_s,
-            sleep_fn=sleep_fn,
+            heartbeat_deadline_s=heartbeat_deadline_s,
+            monotonic_fn=monotonic_fn,
         )
     except BaseException:
         with suppress(SerialTransportError):
@@ -59,8 +60,8 @@ def _exercise_gate_one(
     transport: HeadControllerTransport,
     malformed_frames: Iterable[bytes],
     *,
-    heartbeat_wait_s: float,
-    sleep_fn: Callable[[float], None],
+    heartbeat_deadline_s: float,
+    monotonic_fn: Callable[[], float],
 ) -> GateOneReport:
     transport.request_status()
     status = transport.synchronize(_read_required(device, "startup status"))
@@ -122,8 +123,14 @@ def _exercise_gate_one(
         armed=True,
     )
 
-    sleep_fn(heartbeat_wait_s)
-    heartbeat = transport.accept_telemetry(_read_required(device, "heartbeat timeout"))
+    heartbeat_started_at = monotonic_fn()
+    heartbeat = _read_heartbeat(
+        device,
+        transport,
+        deadline=heartbeat_started_at + heartbeat_deadline_s,
+        monotonic_fn=monotonic_fn,
+    )
+    heartbeat_elapsed_ms = round((monotonic_fn() - heartbeat_started_at) * 1_000)
     _expect(
         heartbeat,
         sequence=pose_sequence,
@@ -146,6 +153,7 @@ def _exercise_gate_one(
         malformed_frames_sent=malformed_count,
         unexpected_malformed_responses=unexpected_responses,
         heartbeat_sequence=heartbeat.seq,
+        heartbeat_elapsed_ms=heartbeat_elapsed_ms,
         final_sequence=final_sequence,
         passed=True,
     )
@@ -156,6 +164,23 @@ def _read_required(device: BenchDevice, step: str) -> bytes:
     if not frame:
         raise SerialTransportError(f"controller did not answer {step}")
     return frame
+
+
+def _read_heartbeat(
+    device: BenchDevice,
+    transport: HeadControllerTransport,
+    *,
+    deadline: float,
+    monotonic_fn: Callable[[], float],
+) -> WireTelemetry:
+    while monotonic_fn() <= deadline:
+        frame = device.read_frame()
+        observed_at = monotonic_fn()
+        if frame:
+            if observed_at > deadline:
+                raise SerialTransportError("heartbeat detach exceeded the bench deadline")
+            return transport.accept_telemetry(frame)
+    raise SerialTransportError("controller did not report heartbeat detach before the deadline")
 
 
 def _expect(
