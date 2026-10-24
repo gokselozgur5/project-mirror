@@ -1,4 +1,5 @@
-from threading import Lock
+from threading import Condition, Lock
+from time import monotonic
 from typing import Literal, Protocol
 
 from .models import EmbodimentState
@@ -33,6 +34,8 @@ class HeadControllerTransport:
         self._sequence = initial_sequence
         self._last_telemetry_sequence = 0
         self._lock = Lock()
+        self._telemetry_condition = Condition(self._lock)
+        self._latest_telemetry: WireTelemetry | None = None
 
     @property
     def sequence(self) -> int:
@@ -66,6 +69,7 @@ class HeadControllerTransport:
                 raise SerialTransportError("transport has already published a command")
             self._sequence = telemetry.seq
             self._last_telemetry_sequence = telemetry.seq
+            self._latest_telemetry = telemetry
             return telemetry
 
     def accept_telemetry(self, frame: bytes) -> WireTelemetry:
@@ -76,7 +80,23 @@ class HeadControllerTransport:
             if telemetry.seq < self._last_telemetry_sequence:
                 raise SerialTransportError("telemetry sequence moved backwards")
             self._last_telemetry_sequence = telemetry.seq
+            self._latest_telemetry = telemetry
+            self._telemetry_condition.notify_all()
             return telemetry
+
+    def wait_for_telemetry(self, sequence: int, *, timeout_s: float = 0.5) -> WireTelemetry:
+        if timeout_s <= 0:
+            raise ValueError("telemetry timeout must be positive")
+        deadline = monotonic() + timeout_s
+        with self._telemetry_condition:
+            while self._latest_telemetry is None or self._latest_telemetry.seq < sequence:
+                remaining = deadline - monotonic()
+                if remaining <= 0:
+                    raise SerialTransportError("controller telemetry acknowledgement timed out")
+                self._telemetry_condition.wait(timeout=remaining)
+            if self._latest_telemetry.seq != sequence:
+                raise SerialTransportError("controller skipped the expected acknowledgement")
+            return self._latest_telemetry
 
     def _next_sequence(self) -> int:
         if self._sequence == 4_294_967_295:
