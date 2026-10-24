@@ -12,4 +12,6 @@ uv run uvicorn project_mirror_perception.app:app --port 8082
 
 No camera or detector backend is selected yet. That choice requires measured
 Thor performance, model-license review, multiple-face behavior, and explicit
-sensor consent.
+sensor consent. Use the repository's
+[detector evaluation plan](../../docs/DETECTOR_BENCH.md) to collect comparable
+evidence without admitting raw media into the service graph.

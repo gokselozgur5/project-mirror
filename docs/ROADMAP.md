@@ -37,6 +37,10 @@ been accepted.
 - Emergency stop and neutral pose.
 - Local face-direction adapter on Thor.
 
+Candidate selection and profiling follow the
+[local detector evaluation](DETECTOR_BENCH.md); no raw-media fixture belongs in
+this repository.
+
 Exit: 100 malformed-command tests cannot exceed limits, and unplugging the host
 causes a safe stop within the configured timeout.
 
