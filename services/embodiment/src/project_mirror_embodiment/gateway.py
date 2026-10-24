@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from math import isfinite
 from threading import Lock
 from time import time_ns
 
@@ -25,6 +26,18 @@ class MotionLimits:
     max_clock_skew_ms: int = 250
 
     def __post_init__(self) -> None:
+        numeric_limits = (
+            self.yaw_min_deg,
+            self.yaw_max_deg,
+            self.pitch_min_deg,
+            self.pitch_max_deg,
+            self.yaw_rate_deg_s,
+            self.pitch_rate_deg_s,
+            self.yaw_acceleration_deg_s2,
+            self.pitch_acceleration_deg_s2,
+        )
+        if not all(isfinite(value) for value in numeric_limits):
+            raise ValueError("motion limits must be finite")
         if not self.yaw_min_deg <= 0 <= self.yaw_max_deg:
             raise ValueError("yaw limits must contain neutral")
         if not self.pitch_min_deg <= 0 <= self.pitch_max_deg:

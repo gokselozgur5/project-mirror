@@ -35,6 +35,8 @@ def target(**overrides: int | float) -> PoseTarget:
         {"yaw_min_deg": 0.0, "yaw_max_deg": 0.0},
         {"pitch_rate_deg_s": 0.0},
         {"yaw_acceleration_deg_s2": -1.0},
+        {"yaw_rate_deg_s": float("nan")},
+        {"pitch_acceleration_deg_s2": float("inf")},
         {"max_clock_skew_ms": -1},
     ],
 )
