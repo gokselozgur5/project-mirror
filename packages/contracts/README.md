@@ -9,5 +9,7 @@ version and an explicit migration.
 - `embodiment-state.v1.json`: bounded state published to all embodiments.
 - `serial-pose-command.v1.json`: checksummed integer command sent to the head
   controller after gateway bounds are applied.
+- `serial-control-command.v1.json`: checksummed stop or arm transition sent to
+  the head controller.
 
 Raw camera and microphone data do not belong in these messages.

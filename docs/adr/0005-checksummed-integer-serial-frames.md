@@ -26,6 +26,10 @@ bytes. Unknown fields, unsupported versions, stale sequences, out-of-range
 integer angles, invalid checksums, oversized frames, and non-terminated frames
 are rejected.
 
+Explicit control frames carry `op` instead of angles. Their checksum payload is
+`v,op,seq`, for example `1,stop,43`. A stop latches the controller and detaches
+the servos. Arm only clears that latch; it does not attach or move a servo.
+
 CRC detects accidental corruption; it does not authenticate a host. Physical
 access, host authorization, and a hardware actuator-power stop remain separate
 controls.

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-mirror.dev/contracts/serial-control-command.v1.json",
+  "title": "Serial control command v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "seq", "op", "crc32"],
+  "properties": {
+    "v": { "const": 1 },
+    "seq": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+    "op": { "enum": ["stop", "arm"] },
+    "crc32": { "type": "string", "pattern": "^[0-9A-F]{8}$" }
+  }
+}

@@ -20,8 +20,11 @@ Servo pitchServo;
 String inputLine;
 uint32_t lastCommandAtMs = 0;
 uint32_t lastSequence = 0;
+int32_t lastYawMilliDegrees = 0;
+int32_t lastPitchMilliDegrees = 0;
 bool armed = false;
 bool discardingFrame = false;
+bool stopLatched = false;
 
 float clampValue(float value, float lower, float upper) {
   return std::max(lower, std::min(upper, value));
@@ -77,6 +80,23 @@ bool checksumMatches(uint32_t sequence, int32_t yawMilliDegrees,
   return strcmp(provided, expected) == 0;
 }
 
+bool controlChecksumMatches(const char *operation, uint32_t sequence, const char *provided) {
+  if (operation == nullptr || provided == nullptr || strlen(provided) != 8) {
+    return false;
+  }
+  for (size_t index = 0; index < 8; ++index) {
+    const char value = provided[index];
+    if (!((value >= '0' && value <= '9') || (value >= 'A' && value <= 'F'))) {
+      return false;
+    }
+  }
+
+  const String payload = "1," + String(operation) + "," + String(sequence);
+  char expected[9];
+  snprintf(expected, sizeof(expected), "%08lX", static_cast<unsigned long>(crc32(payload)));
+  return strcmp(provided, expected) == 0;
+}
+
 void publishTelemetry(int32_t yawMilliDegrees, int32_t pitchMilliDegrees) {
   JsonDocument response;
   response["v"] = 1;
@@ -96,20 +116,53 @@ void handleCommand(const String &line) {
   const JsonObjectConst object = command.as<JsonObjectConst>();
   const JsonVariantConst versionValue = object["v"];
   const JsonVariantConst sequenceValue = object["seq"];
-  const JsonVariantConst yawValue = object["yaw_mdeg"];
-  const JsonVariantConst pitchValue = object["pitch_mdeg"];
-  const JsonVariantConst checksumValue = object["crc32"];
-  if (object.size() != 5 || !versionValue.is<int>() || versionValue.as<int>() != 1 ||
-      !sequenceValue.is<uint32_t>() || !yawValue.is<int32_t>() ||
-      !pitchValue.is<int32_t>() || !checksumValue.is<const char *>()) {
+  if (!versionValue.is<int>() || versionValue.as<int>() != 1 ||
+      !sequenceValue.is<uint32_t>()) {
     return;
   }
 
   const uint32_t sequence = sequenceValue.as<uint32_t>();
+  if (sequence <= lastSequence) {
+    return;
+  }
+
+  if (object["op"].is<const char *>()) {
+    const JsonVariantConst operationValue = object["op"];
+    const JsonVariantConst checksumValue = object["crc32"];
+    if (object.size() != 4 || !operationValue.is<const char *>() ||
+        !checksumValue.is<const char *>()) {
+      return;
+    }
+    const char *operation = operationValue.as<const char *>();
+    if ((strcmp(operation, "stop") != 0 && strcmp(operation, "arm") != 0) ||
+        !controlChecksumMatches(operation, sequence, checksumValue.as<const char *>())) {
+      return;
+    }
+
+    lastSequence = sequence;
+    lastCommandAtMs = millis();
+    if (strcmp(operation, "stop") == 0) {
+      stopLatched = true;
+      disarm();
+    } else {
+      stopLatched = false;
+    }
+    publishTelemetry(lastYawMilliDegrees, lastPitchMilliDegrees);
+    return;
+  }
+
+  const JsonVariantConst yawValue = object["yaw_mdeg"];
+  const JsonVariantConst pitchValue = object["pitch_mdeg"];
+  const JsonVariantConst checksumValue = object["crc32"];
+  if (object.size() != 5 || !yawValue.is<int32_t>() || !pitchValue.is<int32_t>() ||
+      !checksumValue.is<const char *>() || stopLatched) {
+    return;
+  }
+
   const int32_t yawMilliDegrees = yawValue.as<int32_t>();
   const int32_t pitchMilliDegrees = pitchValue.as<int32_t>();
-  if (sequence <= lastSequence || yawMilliDegrees < -55000 || yawMilliDegrees > 55000 ||
-      pitchMilliDegrees < -25000 || pitchMilliDegrees > 25000 ||
+  if (yawMilliDegrees < -55000 || yawMilliDegrees > 55000 || pitchMilliDegrees < -25000 ||
+      pitchMilliDegrees > 25000 ||
       !checksumMatches(sequence, yawMilliDegrees, pitchMilliDegrees,
                        checksumValue.as<const char *>())) {
     return;
@@ -123,6 +176,8 @@ void handleCommand(const String &line) {
   yawServo.write(poseToServo(yaw, kYawMinDeg, kYawMaxDeg));
   pitchServo.write(poseToServo(pitch, kPitchMinDeg, kPitchMaxDeg));
   lastSequence = sequence;
+  lastYawMilliDegrees = yawMilliDegrees;
+  lastPitchMilliDegrees = pitchMilliDegrees;
   lastCommandAtMs = millis();
   publishTelemetry(yawMilliDegrees, pitchMilliDegrees);
 }
