@@ -17,8 +17,14 @@ if grep -Eiq "$forbidden_pattern" <<<"$repository_paths"; then
   exit 1
 fi
 
-if git grep -IEn '(BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,})' -- .; then
+credential_pattern='(BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,})'
+if git grep -IEn "$credential_pattern" -- .; then
   echo "ERROR: probable credential detected" >&2
+  exit 1
+fi
+credential_history=$(git log --all -G"$credential_pattern" --format='%H' -- .)
+if [[ -n "$credential_history" ]]; then
+  echo "ERROR: probable credential detected in Git history" >&2
   exit 1
 fi
 
