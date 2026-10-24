@@ -54,6 +54,11 @@ class ClosableMemoryStream(MemoryStream):
         return b""
 
 
+class InvalidHandshakeStream(ClosableMemoryStream):
+    def read_frame(self) -> bytes:
+        return b"damaged\n"
+
+
 def test_health() -> None:
     response = client.get("/health")
 
@@ -76,6 +81,7 @@ def test_serial_device_is_opt_in_and_closed_on_shutdown(monkeypatch: pytest.Monk
         assert configured_client.get("/health").json()["controller"] == "serial"
         assert configured_client.get("/v1/controller").json()["last_sequence"] == 0
 
+    assert decode_control_command(device.frames[0]).op == "status"
     assert device.closed is True
     assert app.state.controller is None
 
@@ -88,6 +94,23 @@ def test_serial_mode_refuses_to_start_without_control_token(
 
     with pytest.raises(RuntimeError, match="MIRROR_CONTROL_TOKEN"), TestClient(app):
         pass
+
+
+def test_serial_mode_closes_device_after_invalid_handshake(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    device = InvalidHandshakeStream()
+    monkeypatch.setenv("MIRROR_SERIAL_PORT", "/dev/test-controller")
+    monkeypatch.setenv("MIRROR_CONTROL_TOKEN", "test-control-token")
+    monkeypatch.setattr(
+        "project_mirror_embodiment.app.SerialDevice",
+        lambda port: device,
+    )
+
+    with pytest.raises(RuntimeError, match="invalid status handshake"), TestClient(app):
+        pass
+
+    assert device.closed is True
 
 
 def test_pose_and_arm_require_configured_bearer_but_stop_remains_available(
