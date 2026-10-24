@@ -44,6 +44,26 @@ class WireControlCommand(BaseModel):
         return value
 
 
+class WireTelemetry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    v: int = Field(1, ge=1, le=1)
+    seq: int = Field(ge=0, le=4_294_967_295)
+    yaw_mdeg: int = Field(ge=-55_000, le=55_000)
+    pitch_mdeg: int = Field(ge=-25_000, le=25_000)
+    mode: Literal["tracking", "neutral", "stopped"]
+    reason: Literal["pose", "operator_stop", "operator_arm", "heartbeat_timeout"]
+    armed: bool
+    crc32: str = Field(pattern=r"^[0-9A-F]{8}$")
+
+    @field_validator("crc32")
+    @classmethod
+    def uppercase_crc(cls, value: str) -> str:
+        if value != value.upper():
+            raise ValueError("crc32 must use uppercase hexadecimal")
+        return value
+
+
 def encode_pose_command(state: EmbodimentState, *, wire_sequence: int | None = None) -> bytes:
     """Encode an already-bounded gateway state as one newline-delimited frame."""
     sequence = state.sequence if wire_sequence is None else wire_sequence
@@ -116,6 +136,33 @@ def decode_control_command(frame: bytes, *, max_frame_bytes: int = 160) -> WireC
     return command
 
 
+def decode_telemetry(frame: bytes, *, max_frame_bytes: int = 200) -> WireTelemetry:
+    if not frame.endswith(b"\n"):
+        raise SerialProtocolError("frame is not newline terminated")
+    if len(frame) > max_frame_bytes:
+        raise SerialProtocolError("frame exceeds maximum length")
+    try:
+        raw = json.loads(frame)
+        telemetry = WireTelemetry.model_validate(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError, ValidationError) as error:
+        raise SerialProtocolError("invalid telemetry frame") from error
+
+    expected = _crc32(
+        _telemetry_checksum_payload(
+            telemetry.v,
+            telemetry.seq,
+            telemetry.yaw_mdeg,
+            telemetry.pitch_mdeg,
+            telemetry.mode,
+            telemetry.reason,
+            telemetry.armed,
+        )
+    )
+    if telemetry.crc32 != expected:
+        raise SerialProtocolError("crc32 mismatch")
+    return telemetry
+
+
 def _checksum_payload(version: int, sequence: int, yaw_mdeg: int, pitch_mdeg: int) -> bytes:
     return f"{version},{sequence},{yaw_mdeg},{pitch_mdeg}".encode("ascii")
 
@@ -124,6 +171,22 @@ def _control_checksum_payload(
     version: int, operation: Literal["stop", "arm"], sequence: int
 ) -> bytes:
     return f"{version},{operation},{sequence}".encode("ascii")
+
+
+def _telemetry_checksum_payload(
+    version: int,
+    sequence: int,
+    yaw_mdeg: int,
+    pitch_mdeg: int,
+    mode: str,
+    reason: str,
+    armed: bool,
+) -> bytes:
+    armed_value = 1 if armed else 0
+    return (
+        f"{version},telemetry,{sequence},{yaw_mdeg},{pitch_mdeg},"
+        f"{mode},{reason},{armed_value}"
+    ).encode("ascii")
 
 
 def _crc32(payload: bytes) -> str:
