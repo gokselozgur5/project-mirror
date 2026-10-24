@@ -93,6 +93,9 @@ all four processes on `Ctrl-C`.
 The perception service currently accepts derived boxes from tests or a future
 local detector; it does not open a camera.
 
+With the stack running, `make simulate` drives the complete derived-perception
+path until `Ctrl-C`.
+
 Run the automated five-minute Phase 1 acceptance test with:
 
 ```bash
