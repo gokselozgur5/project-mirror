@@ -6,68 +6,75 @@ safety model, relevant ADRs, and linked issue before changing a boundary.
 ## Verified checkpoint
 
 - Last updated: 2026-10-24
-- Source revision at checkpoint: `d5460a948caa85134eb53d4141ea86587f628ad5`
+- Implementation revision at checkpoint: `7818ee496e66fdc5c83fda179f524dd4dde414ee`
 - Phase 1: accepted in hardware-free simulation
-- Phase 2: protocol work started; no hardware validation
+- Phase 2: software protocol path complete; hardware validation has not started
 
-The public CI at this checkpoint covers repository privacy rules, Python lint,
-strict types and tests, a short full-stack soak, web lint/types/build, and an
-ESP32 firmware compile. The local five-minute result and its limits are recorded
-in `docs/evidence/phase1-simulation.md`.
+Public CI covers repository privacy rules, Python lint, strict types and tests,
+a short full-stack soak, web lint/types/tests/build, native protocol vectors, and
+an ESP32 firmware compile. The local five-minute result and its limits are
+recorded in `docs/evidence/phase1-simulation.md`.
 
-## Implemented
+## Implemented and verified in software
 
-- Versioned observation, pose, embodiment-state, and serial-command contracts.
-- Face-direction policy with confidence threshold and center dead zone.
-- Privacy-preserving perception adapter that selects a deterministic target
-  from derived face boxes and emits the public observation contract without raw
-  image fields.
-- Bounded gateway with stale/future/sequence rejection, velocity and
-  acceleration limits, telemetry, latched stop, explicit arm, and heartbeat
+- Versioned observation, pose, embodiment-state, controller-health, serial
+  command, and serial telemetry contracts.
+- Privacy-preserving perception adapter that deterministically selects a target
+  from derived face boxes. The service does not accept or persist raw media.
+- End-to-end synthetic perception-to-runtime-to-gateway-to-browser path.
+- Bounded gateway with stale, future, and sequence rejection; velocity and
+  acceleration limits; metrics; a latched stop; explicit arm; and heartbeat
   neutral behavior.
-- Browser avatar/operator view consuming canonical gateway state.
-- Reproducible short and five-minute full-stack soak runners.
-- ESP32 scaffold with independent angle clamp, stale-sequence rejection,
-  checksummed integer commands, oversized-frame discard, and heartbeat detach.
-- Host controller transport with an independent monotonic wire sequence,
-  complete-write enforcement, and in-memory pose/stop/arm tests.
-- Gateway-to-controller dispatch for pose, stop, and arm; incomplete writes
-  return an error and latch the host gateway stopped.
-- Deterministic 100-frame malformed protocol corpus for later unpowered-board
-  rejection tests; offline decoders reject every frame.
-- Exact frontend and firmware dependency pins plus public CI.
+- Browser operator view consuming canonical gateway state and surfacing
+  controller health. Motion and arm controls are disabled when a configured
+  controller is unhealthy; stop remains available.
+- Reproducible short and five-minute full-stack soak runners. The five-minute
+  acceptance run completed 3,001 of 3,001 requests without a failure.
+- ESP32-S3 firmware scaffold with independent angle clamps, monotonic sequence
+  enforcement, versioned CRC32 frames, oversized-frame discard, explicit
+  status/stop/arm commands, checksummed telemetry, and heartbeat detach.
+- Host serial transport with complete-write enforcement, reconnect sequence
+  synchronization, continuous telemetry validation, and fail-closed handling
+  for invalid, stale, missing, or backwards telemetry.
+- Physical startup stop latch: opening the serial port synchronizes controller
+  state, sends stop, and requires matching telemetry before startup succeeds.
+- Physical arm acknowledgement gate: host arm stays latched until the exact
+  command sequence is acknowledged with the expected controller transition.
+- Bearer authorization for physical pose and arm calls. Emergency stop is
+  intentionally unauthenticated.
+- Deterministic 100-frame malformed protocol corpus. Offline host and native
+  firmware protocol tests reject malformed input and share golden CRC vectors.
+- Exact Python, frontend, and firmware dependency locks plus scheduled public
+  dependency audits.
 
 ## Not implemented or not proven
 
-- No camera/detector backend; Phase 1 observations are synthetic and the new
+- No camera or detector backend. Phase 1 observations are synthetic; the
   perception boundary accepts only already-derived boxes.
-- An explicit `MIRROR_SERIAL_PORT` opens a controller, dispatches writes, and
-  reads validated telemetry into `/v1/controller`; this remains fake-tested,
-  not board-tested.
-- Firmware checksum handling is compile-verified, not board-tested.
-- Pin numbers, pulse widths, soft limits, servo selection, and power design are
-  placeholders pending measured hardware.
-- No firmware stop/arm wire command or checksummed telemetry contract yet.
-- No VAD, STT, text model, TTS, interruption pipeline, or conversation state.
-- No persistent memory, user isolation, avatar lip sync, or physical rig.
-- Physical pose and arm calls require a bearer control token; emergency stop is
-  intentionally unauthenticated. Broader user/session authentication is not
-  implemented.
-- No servo or mechanism has been authorized for connection.
+- Serial behavior is fake-tested and compile-tested, not tested on an ESP32-S3.
+- Pin numbers, pulse widths, soft limits, servo selection, mechanism geometry,
+  and power design are placeholders pending measured hardware.
+- No controller, servo, or mechanism has been authorized for powered movement.
+- No VAD, STT, language model, TTS, interruption pipeline, conversation state,
+  persistent memory, user isolation, or avatar lip sync.
+- Broader user and session authentication is not implemented.
 
 ## Next safe slice
 
-Continue [issue 2](https://github.com/gokselozgur5/project-mirror/issues/2):
+Continue [issue 2](https://github.com/gokselozgur5/project-mirror/issues/2)
+with the controller-only bench plan in `docs/HARDWARE.md`:
 
-1. Define versioned, checksummed telemetry and explicit stop/arm frames.
-2. Add a configured serial port and telemetry reader around the tested host
-   transport without making hardware a default runtime dependency.
-3. Add native or on-board golden-vector tests proving Python and firmware CRC
-   implementations agree.
-4. Only then perform the controller-only bench sequence in `docs/HARDWARE.md`.
+1. Record the exact board revision, USB device, firmware revision, and wiring;
+   keep servos and external motion power disconnected.
+2. Flash the pinned firmware and prove status synchronization, startup stop,
+   arm acknowledgement, and monotonic sequence behavior over the real link.
+3. Send the 100-frame malformed corpus and prove that none produces motion or
+   an unsafe state transition.
+4. Prove heartbeat timeout and USB disconnect return the controller to detached,
+   stopped behavior.
+5. Attach the evidence to issue 2. Do not close it on compile results alone.
 
-Do not close the issue on the strength of a firmware compile. Its acceptance
-criteria require real disconnect and malformed-frame behavior on the board.
+Only after that gate should issue 3 add and profile a real detector backend.
 
 ## Working conventions
 
