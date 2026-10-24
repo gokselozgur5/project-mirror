@@ -1,16 +1,23 @@
 import serial  # type: ignore[import-untyped]
 
 
+class SerialDeviceError(RuntimeError):
+    """Raised when a configured serial device cannot be opened."""
+
+
 class SerialDevice:
     """Small typed boundary around pyserial for controller writes."""
 
     def __init__(self, port: str, *, baud_rate: int = 115_200, timeout_s: float = 0.2) -> None:
-        self._port = serial.Serial(
-            port=port,
-            baudrate=baud_rate,
-            timeout=timeout_s,
-            write_timeout=timeout_s,
-        )
+        try:
+            self._port = serial.Serial(
+                port=port,
+                baudrate=baud_rate,
+                timeout=timeout_s,
+                write_timeout=timeout_s,
+            )
+        except serial.SerialException as error:
+            raise SerialDeviceError(f"could not open serial device: {port}") from error
 
     def write(self, data: bytes) -> int:
         try:
